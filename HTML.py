@@ -46,7 +46,7 @@ class HTMLDocument:
 	def body(self):
 		return self.__root.body
 		
-	def createElement(tag, id=None, class_name=None):
+	def createElement(tag, id=None, class_name=None, style=None):
 		if type(tag) is not str:
 			raise TypeError('Tag must be a string')
 		
@@ -60,6 +60,8 @@ class HTMLDocument:
 			e.id = id
 		if type(class_name) is str:
 			e.className = class_name
+		if type(style) is str:
+			e.setAttribute('style', style)
 		return e
 	
 	def addMetaTag(self, attributes):
@@ -307,66 +309,66 @@ class HTMLElement:
 			e.attributes[key] = value
 		return e
 	
-	def h1(inner_text='', id=None, class_name=None):
-		e = HTMLDocument.createElement('h1', id, class_name)
+	def h1(inner_text='', id=None, class_name=None, style=None):
+		e = HTMLDocument.createElement('h1', id, class_name, style)
 		e.innerText = inner_text
 		return e
 		
-	def h2(inner_text='', id=None, class_name=None):
-		e = HTMLDocument.createElement('h2', id, class_name)
+	def h2(inner_text='', id=None, class_name=None, style=None):
+		e = HTMLDocument.createElement('h2', id, class_name, style)
 		e.innerText = inner_text
 		return e
 		
-	def h3(inner_text='', id=None, class_name=None):
-		e = HTMLDocument.createElement('h3', id, class_name)
+	def h3(inner_text='', id=None, class_name=None, style=None):
+		e = HTMLDocument.createElement('h3', id, class_name, style)
 		e.innerText = inner_text
 		return e
 	
-	def h4(inner_text='', id=None, class_name=None):
-		e = HTMLDocument.createElement('h4', id, class_name)
+	def h4(inner_text='', id=None, class_name=None, style=None):
+		e = HTMLDocument.createElement('h4', id, class_name, style)
 		e.innerText = inner_text
 		return e
 	
-	def h5(inner_text='', id=None, class_name=None):
-		e = HTMLDocument.createElement('h5', id, class_name)
+	def h5(inner_text='', id=None, class_name=None, style=None):
+		e = HTMLDocument.createElement('h5', id, class_name, style)
 		e.innerText = inner_text			
 		return e
 	
-	def p(inner_text='', id=None, class_name=None):
-		e = HTMLDocument.createElement('p', id, class_name)
+	def p(inner_text='', id=None, class_name=None, style=None):
+		e = HTMLDocument.createElement('p', id, class_name, style)
 		e.innerText = inner_text
 		return e
 		
-	def a(src, inner_text='', id=None, class_name=None):
+	def a(src, inner_text='', id=None, class_name=None, style=None):
 		if type(src) is not str:
 			raise TypeError('Source must be a string')
-		e = HTMLDocument.createElement('a', id, class_name)
+		e = HTMLDocument.createElement('a', id, class_name, style)
 		e.setAttribute('src', src)
 		e.innerText = inner_text
 		return e
 	
-	def table(id=None, class_name=None):
-		return HTMLDocument.createElement('table', id, class_name)
+	def table(id=None, class_name=None, style=None):
+		return HTMLDocument.createElement('table', id, class_name, style)
 	
-	def tr(id=None, class_name=None):
-		return HTMLDocument.createElement('tr', id, class_name)
+	def tr(id=None, class_name=None, style=None):
+		return HTMLDocument.createElement('tr', id, class_name, style)
 	
-	def th(id=None, class_name=None):
-		return HTMLDocument.createElement('th', id, class_name)
+	def th(id=None, class_name=None, style=None):
+		return HTMLDocument.createElement('th', id, class_name, style)
 		
-	def td(inner_text='', id=None, class_name=None):
-		e = HTMLDocument.createElement('td', id, class_name)
+	def td(inner_text='', id=None, class_name=None, style=None):
+		e = HTMLDocument.createElement('td', id, class_name, style)
 		e.innerText = inner_text
 		return e
 	
-	def ol(id=None, class_name=None):
-		return HTMLDocument.createElement('ol', id, class_name)
+	def ol(id=None, class_name=None, style=None):
+		return HTMLDocument.createElement('ol', id, class_name, style)
 	
-	def ul(id=None, class_name=None):
-		return HTMLDocument.createElement('ul', id, class_name)
+	def ul(id=None, class_name=None, style=None):
+		return HTMLDocument.createElement('ul', id, class_name, style)
 	
-	def li(inner_text='', id=None, class_name=None):
-		e = HTMLDocument.createElement('id', id, class_name)
+	def li(inner_text='', id=None, class_name=None, style=None):
+		e = HTMLDocument.createElement('id', id, class_name, style)
 		e.innerText = inner_text
 		return e
 
