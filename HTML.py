@@ -254,7 +254,7 @@ class HTMLElement:
 		else:
 			raise TypeError('Child is not an instance of HTMLElement or TextNode')
 		child.parent = self
-		return self
+		return child
 	
 	def insertBefore(self, child, existing_child=None):
 		if self.hasChild(child):
@@ -273,7 +273,7 @@ class HTMLElement:
 				self.__childNodes.insert(self.__childNodes.index(existing_child), child)
 			elif isinstance(child, TextNode):
 				self.__childNodes.insert(self.__childNodes.index(existing_child), child)
-		return self
+		return child
 	
 	def insertAfter(self, child, existing_child=None):
 		if self.hasChild(child):
@@ -290,7 +290,7 @@ class HTMLElement:
 				self.__childNodes.insert(cn_index, child)
 			elif isinstance(child, TextNode):
 				self.__childNodes.insert(cn_index, child)
-		return self
+		return child
 	
 	def removeChild(self, child):
 		if self.__children.count(child) <= 0:
@@ -386,8 +386,12 @@ class HTMLElement:
 	def tr(id=None, class_name=None, style=None):
 		return HTMLDocument.createElement('tr', id, class_name, style)
 	
-	def th(id=None, class_name=None, style=None):
-		return HTMLDocument.createElement('th', id, class_name, style)
+	def th(inner_text='', id=None, class_name=None, style=None):
+		if type(inner_text) is not str:
+			raise TypeError('Inner text must be a string')
+		e = HTMLDocument.createElement('th', id, class_name, style)
+		e.innerText = inner_text
+		return e
 		
 	def td(inner_text='', id=None, class_name=None, style=None):
 		if type(inner_text) is not str:
