@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 """
-Simple HTML module for generating pages
+Simple HTML module that tries to resemble Javascript's DOM API
 Author: Andy Deveaux
 Last Updated: 19/12/2016
 """
@@ -96,7 +96,7 @@ class HTMLDocument:
 		self.head.appendChild(e)
 		return e
 	
-	def getSource(self):
+	def getSource(self, condensed_mode=False, leave_comment=False):
 		source = '<!DOCTYPE html'
 		if self.__isXHTML:
 			source += ' PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">\n'
@@ -104,18 +104,27 @@ class HTMLDocument:
 		else:
 			source += '>\n'
 			source += '<html lang="en">\n'
-		source += self.__getSource(self.__root.childNodes, 1)
+		
+		if condensed_mode and leave_comment:
+			source += "<!-- Generated in \"condensed_mode\" -->"
+		source += self.__getSource(self.__root.childNodes, 1, condensed_mode)
 		source += '</html>'
 		return source
 	
-	def __getSource(self, nodeList, indent_level=0):
+	def __getSource(self, nodeList, indent_level=0, condensed_mode=False):
 		source = ''
 		for node in nodeList:
 			if isinstance(node, TextNode):
-				source += str.format('{0}{1}\n', '\t'*indent_level, node.text)
+				if condensed_mode:
+					source += str.format('{0}', node.text)
+				else:
+					source += str.format('{0}{1}\n', '\t' * indent_level, node.text)
 				continue
 			
-			source += str.format('{0}<{1}', '\t'*indent_level, node.tag)
+			if condensed_mode:
+				source += str.format('<{0}', node.tag)
+			else:
+				source += str.format('{0}<{1}', '\t' * indent_level, node.tag)
 			for key, value in node.attributes:
 				source += str.format(' {0}="{1}"', key, value)
 			
@@ -125,17 +134,24 @@ class HTMLDocument:
 					if node.tag == t:
 						self_closing_tag = True
 						if self.__isXHTML:
-							source += '/>\n'
+							source += '/>'
 						else:
-							source += '>\n'
+							source += '>'
+						if not condensed_mode:
+							source += '\n'
 						break
 			
 			if not self_closing_tag:
-				source += '>\n'
+				source += '>'
+				if not condensed_mode:
+					source += '\n'
 				indent_level += 1
-				source += self.__getSource(node.childNodes, indent_level)
+				source += self.__getSource(node.childNodes, indent_level, condensed_mode)
 				indent_level -= 1
-				source += str.format("{0}</{1}>\n", '\t'*indent_level, node.tag)
+				if condensed_mode:
+					source += str.format('</{0}>', node.tag)
+				else:
+					source += str.format("{0}</{1}>\n", '\t' * indent_level, node.tag)
 		return source
 
 class HTMLElement:
