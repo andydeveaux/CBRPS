@@ -160,17 +160,17 @@ class HTMLElement:
 	def id(self, id):
 		if type(id) is not str:
 			raise TypeError('id must be a string')
-		self.__attributes['id'] = id
+		self.setAttribute('id', id)
 		
 	@property
 	def className(self):
 		return self.__attributes.get('className')			
 	@className.setter
 	def className(self, class_name):
-		if type(id) is not str:
+		if type(class_name) is not str:
 			raise TypeError('Class name must be a string')
-		self.__attributes['class'] = class_name
-	
+		self.setAttribute('class', class_name)
+		
 	@property
 	def attributes(self):
 		return self.__attributes.copy()		# Don't give access to the original
@@ -218,20 +218,27 @@ class HTMLElement:
 	def setAttribute(self, name, value):
 		if type(name) is not str:
 			raise TypeError('Attribute name must be a string')
-		
+				
 		if value is not None:
-			self.__attributes.append((name, str(value)))
-		# Remove attribute
-		else:
-			for attrib in self.__attributes:
-				if attrib[0] == name:
-					self.__attributes.remove(attrib)
+			value = str(value).lower()
+			# If attribute already exists, replace it
+			index = -1
+			for i, attrib in enumerate(self.__attributes):
+				if attrib[0].lower() == name:
+					index = i
 					break
-		
-	def getAttribute(self, name):
+			if index > -1:
+				self.__attributes[index] = (name, value)
+			else:
+				self.__attributes.append((name, value))
+	
+	def removeAttribute(self, name):
 		if type(name) is not str:
 			raise TypeError('Attribute name must be a string')
-		return self.__attributes.get(name)
+		for attrib in self.__attributes:
+			if attrib[0] == name:
+				self.__attributes.remove(attrib)
+				break
 	
 	def getNumOfChildNodes(self):
 		return len(self.__childNodes)
@@ -390,7 +397,7 @@ class HTMLRootElement(HTMLElement):
 
 class HTMLTableElement(HTMLElement):
 	def __init__(self):
-		super().__init__()
+		super().__init__('table')
 		self.__tHead = HTMLElement('thead')
 		self.__tBody = HTMLElement('tbody')
 		self.appendChild(self.__tHead)
