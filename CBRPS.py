@@ -243,8 +243,9 @@ def insertPlaylistIntoDatabase(site_info, playlist):
 		logger.debug("Song ID: " + str(song_id))
 			
 		# Format dates for display and figure out complete dates from missing data
-		local_datetime_converted = datetime.now(timezone(site_info['utcoffset']))	# Convert system timezone to the same as the station's
-		scraped_local_datetime = datetime.strptime(record['datetime'], site_info['time_format'])
+		site_tz = timezone(site_info['utcoffset'])
+		local_datetime_converted = datetime.now(site_tz)	# Convert system timezone to the same as the station's
+		scraped_local_datetime = datetime.strptime(record['datetime'], site_info['time_format']).replace(tzinfo=site_tz)
 		# If no year is in the time format, we must figure out what year it was (lest it be kept at 1900)
 		if site_info['time_format'].find('%Y') == -1:
 			# No date either? Goddamnit The Giant/The Eagle
@@ -260,6 +261,7 @@ def insertPlaylistIntoDatabase(site_info, playlist):
 						first_song_local_datetime = first_song_local_datetime.replace(day=local_datetime_converted.day - 1)
 					else:	
 						play_local_datetime = first_song_local_datetime
+				# Compare time to first scraped song
 				else:
 					if scraped_local_datetime.hour > first_song_local_datetime.hour or \
 					(scraped_local_datetime.hour == first_song_local_datetime.hour and (scraped_local_datetime.minute > first_song_local_datetime.minute or
@@ -365,7 +367,7 @@ class DBO:
 							created DATE NOT NULL DEFAULT CURRENT_TIMESTAMP
 						)""")
 		
-		conn.commit()		
+		conn.commit()
 		self.__log(logging.INFO, 'Schema created successfully')
 	
 	def __insertInitialData(self):
