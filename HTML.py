@@ -254,6 +254,7 @@ class HTMLElement:
 		else:
 			raise TypeError('Child is not an instance of HTMLElement or TextNode')
 		child.parent = self
+		return self
 	
 	def insertBefore(self, child, existing_child=None):
 		if self.hasChild(child):
@@ -272,6 +273,7 @@ class HTMLElement:
 				self.__childNodes.insert(self.__childNodes.index(existing_child), child)
 			elif isinstance(child, TextNode):
 				self.__childNodes.insert(self.__childNodes.index(existing_child), child)
+		return self
 	
 	def insertAfter(self, child, existing_child=None):
 		if self.hasChild(child):
@@ -288,6 +290,7 @@ class HTMLElement:
 				self.__childNodes.insert(cn_index, child)
 			elif isinstance(child, TextNode):
 				self.__childNodes.insert(cn_index, child)
+		return self
 	
 	def removeChild(self, child):
 		if self.__children.count(child) <= 0:
@@ -304,6 +307,8 @@ class HTMLElement:
 
 	# HTML helper methods
 	def title(inner_text=''):
+		if type(inner_text) is not str:
+			raise TypeError('Inner text must be a string')
 		e = HTMLDocument.createElement('title')
 		e.innerText = inner_text
 		return e
@@ -317,31 +322,43 @@ class HTMLElement:
 		return e
 	
 	def h1(inner_text='', id=None, class_name=None, style=None):
+		if type(inner_text) is not str:
+			raise TypeError('Inner text must be a string')
 		e = HTMLDocument.createElement('h1', id, class_name, style)
 		e.innerText = inner_text
 		return e
 		
 	def h2(inner_text='', id=None, class_name=None, style=None):
+		if type(inner_text) is not str:
+			raise TypeError('Inner text must be a string')
 		e = HTMLDocument.createElement('h2', id, class_name, style)
 		e.innerText = inner_text
 		return e
 		
 	def h3(inner_text='', id=None, class_name=None, style=None):
+		if type(inner_text) is not str:
+			raise TypeError('Inner text must be a string')
 		e = HTMLDocument.createElement('h3', id, class_name, style)
 		e.innerText = inner_text
 		return e
 	
 	def h4(inner_text='', id=None, class_name=None, style=None):
+		if type(inner_text) is not str:
+			raise TypeError('Inner text must be a string')
 		e = HTMLDocument.createElement('h4', id, class_name, style)
 		e.innerText = inner_text
 		return e
 	
 	def h5(inner_text='', id=None, class_name=None, style=None):
+		if type(inner_text) is not str:
+			raise TypeError('Inner text must be a string')
 		e = HTMLDocument.createElement('h5', id, class_name, style)
 		e.innerText = inner_text			
 		return e
 	
 	def p(inner_text='', id=None, class_name=None, style=None):
+		if type(inner_text) is not str:
+			raise TypeError('Inner text must be a string')
 		e = HTMLDocument.createElement('p', id, class_name, style)
 		e.innerText = inner_text
 		return e
@@ -349,8 +366,17 @@ class HTMLElement:
 	def a(src, inner_text='', id=None, class_name=None, style=None):
 		if type(src) is not str:
 			raise TypeError('Source must be a string')
+		if type(inner_text) is not str:
+			raise TypeError('Inner text must be a string')
 		e = HTMLDocument.createElement('a', id, class_name, style)
 		e.setAttribute('src', src)
+		e.innerText = inner_text
+		return e
+	
+	def span(inner_text='', id=None, class_name=None, style=None):
+		if type(inner_text) is not str:
+			raise TypeError('Inner text must be a string')
+		e = HTMLDocument.createElement('span', id, class_name, style)
 		e.innerText = inner_text
 		return e
 	
@@ -364,6 +390,8 @@ class HTMLElement:
 		return HTMLDocument.createElement('th', id, class_name, style)
 		
 	def td(inner_text='', id=None, class_name=None, style=None):
+		if type(inner_text) is not str:
+			raise TypeError('Inner text must be a string')
 		e = HTMLDocument.createElement('td', id, class_name, style)
 		e.innerText = inner_text
 		return e
@@ -375,6 +403,8 @@ class HTMLElement:
 		return HTMLDocument.createElement('ul', id, class_name, style)
 	
 	def li(inner_text='', id=None, class_name=None, style=None):
+		if type(inner_text) is not str:
+			raise TypeError('Inner text must be a string')
 		e = HTMLDocument.createElement('id', id, class_name, style)
 		e.innerText = inner_text
 		return e
