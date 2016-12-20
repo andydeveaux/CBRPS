@@ -396,6 +396,9 @@ class HTMLElement:
 		e.innerText = inner_text
 		return e
 	
+	def div(id=None, class_name=None, style=None):
+		return HTMLDocument.createElement('div', id, class_name, style)
+	
 	def table(id=None, class_name=None, style=None):
 		return HTMLDocument.createElement('table', id, class_name, style)
 	
