@@ -379,13 +379,13 @@ class HTMLElement:
 		e.innerText = inner_text
 		return e
 		
-	def a(src, inner_text='', id=None, class_name=None, style=None):
-		if type(src) is not str:
-			raise TypeError('Source must be a string')
+	def a(href, inner_text='', id=None, class_name=None, style=None):
+		if type(href) is not str:
+			raise TypeError('Anchor href must be a string')
 		if type(inner_text) is not str:
 			raise TypeError('Inner text must be a string')
 		e = HTMLDocument.createElement('a', id, class_name, style)
-		e.setAttribute('src', src)
+		e.setAttribute('href', href)
 		e.innerText = inner_text
 		return e
 	
