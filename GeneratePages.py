@@ -64,10 +64,13 @@ def generatePlaylistsPage(filename, conn):
 	del playlists
 	
 	header_columns = ('#', 'Song', 'Artist', 'Play Time (original)', 'Play Time (formatted)')
-	# Using the station list defined aboved, I can keep the order of the stations as they appear in the query
+	# Using the station list defined above, I can keep the order of the stations as they appear in the query
 	# results AND keep the rest of the station data without using a more complex data structure
 	for station in stations:
-		body.appendChild(HTML.HTMLElement.h2('Station: ' + station['name']))
+		playlist_header = HTML.HTMLElement.h2('Station: ' + station['name'] + ' (')
+		playlist_header.appendChild(HTML.HTMLElement.a(station['playlist_url'], station['playlist_url']))
+		playlist_header.appendChild(HTML.TextNode(')'))
+		body.appendChild(playlist_header)
 		table = createTable(header_columns, class_name='playlist')
 		for index, row in enumerate(partitioned_playlists[station['id']]):
 			tr = HTML.HTMLElement.tr()
@@ -84,6 +87,57 @@ def generatePlaylistsPage(filename, conn):
 	source = doc.getSource(True, True)
 	print('Finished.')
 	writeToFile(filename, source)
+
+def getDistinctSongForEachStation(conn):
+	"""
+	Returns an array of distinct songs played by each station
+	
+	Args:
+		conn: Database connection
+	"""
+	pass
+
+def getSongPlayCountForEachStation(conn):
+	"""
+	Returns the play count for each song by each station.
+	Ordered by play count in descending order
+	
+	Args:
+		conn: Database connection
+	"""
+	pass
+
+def getDistinctArtistForEachStation(conn):
+	"""
+	Returns an array of distinct artists played by each station
+	
+	Args:
+		conn: Database connection
+	"""
+	pass
+	
+def getArtistPlayCountForEachStation(conn):
+	"""
+	Returns the play count for each artist by each station
+	Ordered by play count in descending order
+	
+	Args:
+		conn: Database connection
+	"""
+	pass
+
+def getSongPlayCountByKeywordsForEachStation(conn):
+	"""
+	Returns the play count for each song that contains specific keywords by each station
+	Ordered by play count in descending order
+	
+	Args:
+		conn: Database connection
+	"""
+	keywords = ('christmas', 'snow', 'bells', 'jingle', 'santa', 'claus', 'winter', 'reindeer', 'rudolph', 'angel', 'noel',
+				'sleigh', 'present', 'mistletoe', 'tinsel', 'tree', 'stocking', 'xmas', 'silver', 'saint', 'silent night',
+				'cold outside', 'frosty', 'drummer boy', 'mary', 'merry', 'lord', 'sugar plum', 'chestnuts', 'feliz navidad',
+				'december', 'holiday', 'wish', 'lights', 'fairy', 'hallelujah')
 
 with sqlite3.connect(DATABASE_FILENAME) as conn:
 	conn.row_factory = sqlite3.Row
