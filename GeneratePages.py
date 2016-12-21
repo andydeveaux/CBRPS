@@ -30,7 +30,33 @@ def createTable(columns, id=None, class_name=None):
 		header_row.appendChild(HTML.HTMLElement.th(col))
 	table.tHead.appendChild(header_row)
 	return table
-		
+
+def createStationListHeader(station_name, station_playlist_url):
+	"""
+	Returns a new HTML header element with the station name and playlist URL
+	
+	Args:
+		station_name: Name of the station
+		station_playlist_url: URL of the station's playlist
+	"""
+	header = HTML.HTMLElement.h2('Station: ' + station_name + '(')
+	header.appendChild(HTML.HTMLElement.a(station_playlist_url, station_playlist_url))
+	header.appendChild(HTML.TextNode(')'))
+	return header
+
+def partitionDataByStation(data):
+	"""
+	Separates rows of data into a dictionary where the keys are a station id
+	
+	Args:
+		data: Query results that requires each row to have the 'station_id' key set
+	"""
+	partitioned_data = {}
+	for station in STATIONS:
+		partitioned_data[station['id']] = []
+	for row in data:
+		partitioned_data[row['station_id']].append(row)
+	return partitioned_data
 
 def generatePlaylistsPage(filename, conn):
 	print('Generating playlists page...')
@@ -48,7 +74,6 @@ def generatePlaylistsPage(filename, conn):
 	body.appendChild(HTML.HTMLElement('br'))
 	
 	cursor = conn.cursor()
-	stations = cursor.execute("SELECT * FROM stations").fetchall()
 	playlists = cursor.execute("""SELECT playlists.station_id, songs.name as song_name, artists.name as artist_name, playlists.original_time, playlists.formatted_time, playlists.posix_timestamp FROM playlists
 								INNER JOIN songs ON playlists.song_id = songs.id
 								INNER JOIN artists ON songs.artist_id = artists.id
@@ -56,21 +81,14 @@ def generatePlaylistsPage(filename, conn):
 								ORDER BY station_id, posix_timestamp DESC""").fetchall()
 	
 	# Partition each station into its own list by using a dictionary
-	partitioned_playlists = {}
-	for station in stations:
-		partitioned_playlists[station['id']] = []
-	for row in playlists:
-		partitioned_playlists[row['station_id']].append(row)
+	partitioned_playlists = partitionDataByStation(playlists)
 	del playlists
 	
 	header_columns = ('#', 'Song', 'Artist', 'Play Time (original)', 'Play Time (formatted)')
 	# Using the station list defined above, I can keep the order of the stations as they appear in the query
 	# results AND keep the rest of the station data without using a more complex data structure
-	for station in stations:
-		playlist_header = HTML.HTMLElement.h2('Station: ' + station['name'] + ' (')
-		playlist_header.appendChild(HTML.HTMLElement.a(station['playlist_url'], station['playlist_url']))
-		playlist_header.appendChild(HTML.TextNode(')'))
-		body.appendChild(playlist_header)
+	for station in STATIONS:
+		body.appendChild(createStationListHeader(station['name'], station['playlist_url']))
 		table = createTable(header_columns, class_name='playlist')
 		for index, row in enumerate(partitioned_playlists[station['id']]):
 			tr = HTML.HTMLElement.tr()
@@ -95,7 +113,13 @@ def getDistinctSongForEachStation(conn):
 	Args:
 		conn: Database connection
 	"""
-	pass
+	cursor = conn.cursor()
+	results = cursor.execute("""SELECT DISTINCT playlists.song_id, songs.name AS song_name, artists.name AS artist_name, playlists.* FROM playlists
+								INNER JOIN songs ON playlists.song_id = songs.id
+								INNER JOIN artists ON songs.artist_id = artists.id
+								ORDER BY station_id, artist_name""").fetchall()
+	
+	return partitionDataByStation(results)	
 
 def getSongPlayCountForEachStation(conn):
 	"""
@@ -114,7 +138,13 @@ def getDistinctArtistForEachStation(conn):
 	Args:
 		conn: Database connection
 	"""
-	pass
+	cursor = conn.cursor()
+	results = cursor.execute("""SELECT DISTINCT artists.id, artists.name AS artist_name, playlists.station_id FROM playlists
+								INNER JOIN songs ON playlists.song_id = songs.id
+								INNER JOIN artists ON songs.artist_id = artists.id
+								ORDER BY station_id, artists.name""").fetchall()
+	
+	return partitionDataByStation(results)
 	
 def getArtistPlayCountForEachStation(conn):
 	"""
@@ -141,4 +171,6 @@ def getSongPlayCountByKeywordsForEachStation(conn):
 
 with sqlite3.connect(DATABASE_FILENAME) as conn:
 	conn.row_factory = sqlite3.Row
+	cursor = conn.cursor()
+	STATIONS = cursor.execute("SELECT * FROM stations").fetchall()		# So the stations only need to be fetched once
 	generatePlaylistsPage('playlists.html', conn)
