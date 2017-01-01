@@ -246,6 +246,9 @@ def insertPlaylistIntoDatabase(site_info, playlist):
 		site_tz = timezone(site_info['utcoffset'])
 		local_datetime_converted = datetime.now(site_tz)	# Convert system timezone to the same as the station's
 		scraped_local_datetime = datetime.strptime(record['datetime'], site_info['time_format']).replace(tzinfo=site_tz)
+		# NOTE: I've taken out seconds comparison because it's very possible for system clocks to be some seconds ahead or behind.
+		      # I've actually ran into a situation where a song's time was 5 seconds ahead of my time, and luckily a bug stopped it
+		      # from entering incorrect times into the database. Whew!
 		# If no year is in the time format, we must figure out what year it was (lest it be kept at 1900)
 		if site_info['time_format'].find('%Y') == -1:
 			# No date either? Goddamnit The Giant/The Eagle
@@ -256,16 +259,14 @@ def insertPlaylistIntoDatabase(site_info, playlist):
 					first_song_local_datetime = local_datetime_converted.replace(hour=scraped_local_datetime.hour, minute=scraped_local_datetime.minute, second=scraped_local_datetime.second)
 					# If the time is ahead of today's time, it's probably from yesterday
 					if first_song_local_datetime.hour > local_datetime_converted.hour or \
-					(first_song_local_datetime.hour == local_datetime_converted.hour and (first_song_local_datetime.minute > local_datetime_converted.minute or
-					 (first_song_local_datetime.minute == local_datetime_converted.minute and first_song_local_datetime.second > local_datetime_converted.second))):
+					(first_song_local_datetime.hour == local_datetime_converted.hour and first_song_local_datetime.minute > local_datetime_converted.minute):
 						first_song_local_datetime = first_song_local_datetime.replace(day=local_datetime_converted.day - 1)
-					else:	
-						play_local_datetime = first_song_local_datetime
+					
+					play_local_datetime = first_song_local_datetime
 				# Compare time to first scraped song
 				else:
 					if scraped_local_datetime.hour > first_song_local_datetime.hour or \
-					(scraped_local_datetime.hour == first_song_local_datetime.hour and (scraped_local_datetime.minute > first_song_local_datetime.minute or
-					 (scraped_local_datetime.minute == first_song_local_datetime.minute and scraped_local_datetime.second > first_song_local_datetime.second))):
+					(scraped_local_datetime.hour == first_song_local_datetime.hour and scraped_local_datetime.minute > first_song_local_datetime.minute):
 						play_local_datetime = first_song_local_datetime.replace(hour=scraped_local_datetime.hour, minute=scraped_local_datetime.minute, second=scraped_local_datetime.second) - timedelta(days=1)
 					  
 					else:
@@ -276,8 +277,7 @@ def insertPlaylistIntoDatabase(site_info, playlist):
 			elif scraped_local_datetime.month > local_datetime_converted.month or \
 			(scraped_local_datetime.month == local_datetime_converted.month and (scraped_local_datetime.day > local_datetime_converted.day or
 			 (scraped_local_datetime.day == local_datetime_converted.day and (scraped_local_datetime.hour > local_datetime_converted.hour or
-			  (scraped_local_datetime.hour == local_datetime_converted.hour and (scraped_local_datetime.minute > local_datetime_converted.minute or
-			  	(scraped_local_datetime.minute == local_datetime_converted.minute and scraped_local_datetime.second > local_datetime_converted.second))))))):
+			  (scraped_local_datetime.hour == local_datetime_converted.hour and scraped_local_datetime.minute > local_datetime_converted.minute))))):
 				play_local_datetime = scraped_local_datetime.replace(year=local_datetime_converted.year-1)
 			else:
 				play_local_datetime = scraped_local_datetime.replace(year=local_datetime_converted.year)
