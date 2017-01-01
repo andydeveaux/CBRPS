@@ -5,7 +5,7 @@ v1.0
 
 Scrapes radio playlist data from some of the Cape Breton radio stations (as of December 2016)
 
-Last Updated: 16/12/2016
+Last Updated: 01/01/2017
 """
 
 # This script is a bit of a mess that I hacked together while learning about Python and its various libraries, so forgive the suckiness
