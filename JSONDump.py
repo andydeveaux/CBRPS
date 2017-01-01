@@ -8,7 +8,7 @@ import sqlite3
 import json
 
 DATABASE_FILE='CBRadioPlaylists.db'
-OUTPUT_FILE='playlist_data.json'
+OUTPUT_FILE='playlists_data.json'
 
 def structureData(stations, artists, songs, playlists):
 	"""
