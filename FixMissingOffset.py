@@ -9,8 +9,8 @@ import shutil
 import datetime
 import math
 
-DATABASE_FILENAME = 'CBRadioPlaylist.db'
-NEW_DATABASE_FILENAME = 'CBRadioPlaylist_New.db'
+DATABASE_FILENAME = 'CBRadioPlaylists.db'
+NEW_DATABASE_FILENAME = 'CBRadioPlaylists_New.db'
 
 def getUTCOffsetFromSeconds(seconds):
 	hours = seconds / 3600

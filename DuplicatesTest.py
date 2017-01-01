@@ -3,7 +3,7 @@
 import sqlite3
 
 
-DATABASE_FILE = 'CBRPS.db'
+DATABASE_FILE = 'CBRadioPlaylists.db'
 OUTPUT_FILE = 'Duplicates.txt'
 
 def getDuplicates(playlists):

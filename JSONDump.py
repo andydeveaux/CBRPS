@@ -7,7 +7,7 @@ Script to dump the database into a compact JSON formatted file
 import sqlite3
 import json
 
-DATABASE_FILE='CBRPS.db'
+DATABASE_FILE='CBRadioPlaylists.db'
 OUTPUT_FILE='playlist_data.json'
 
 def structureData(stations, artists, songs, playlists):
