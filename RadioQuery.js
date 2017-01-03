@@ -78,51 +78,215 @@
 		
 	};
 	
-	var getMostAndLeastPlayedSongsForStations = function(limit) {
+	var getStats = function(limit) {
+		var CHRISTMAS_KEYWORDS = [
+			'christmas', 'snow', 'bells', 'jingle', 'santa', 'claus', 'winter', 'reindeer', 'rudolph', 'angel sings', 'noel',
+			'sleigh', 'present', 'mistletoe', 'tinsel', 'tree', 'stocking', 'xmas', 'silver', 'saint', 'silent night',
+			'cold outside', 'frosty', 'drummer boy', 'mary', 'merry', 'lord', 'sugar plum', 'chestnuts', 'feliz navidad',
+			'december', 'holiday', 'wish', 'fairy', 'hallelujah'
+		];
 
 		var stations_table = this.radioData.stations;
-		var song_stats = {most: {}, least: {}};
-		var restructured_songs = {};
-		var station_id, i;
+		var songs_table = this.radioData.songs;
+		var stats = {
+			stationsMostPlayedSongs: {}, stationsLeastPlayedSongs: {}, 
+			stationsMostPlayedArtists: {}, stationsLeastPlayedArtists: {},
+			mostPlayedSongs: {}, leastPlayedSongs: {},
+			stationsMostPlayedChristmasSongs: {}, stationsLeastPlayedChristmasSongs: {},
+			mostPlayedChristmasSongs: {}, leastPlayedChristmasSongs: {}
+		};
+		// Put songs under each station ID
+		var songs_by_station = {};
+		var christmas_songs_by_station = {};
+		var artists_by_station = {};
+		var all_songs = {};
+		var all_artists = {};
+		var all_christmas_songs = {};
+		var station_id;
 		for (station_id in stations_table) {
 			if (stations_table.hasOwnProperty(station_id)) {
-				restructured_songs[station_id] = [];
-				song_stats.most[station_id] = [];
-				song_stats.least[station_id] = [];
+				songs_by_station[station_id] = [];
+				christmas_songs_by_station[station_id] = [];
+				artists_by_station[station_id] = {};				
+				stats.stationsMostPlayedSongs[station_id] = [];
+				stats.stationsLeastPlayedSongs[station_id] = [];
+				stats.stationsMostPlayedArtists[station_id] = [];
+				stats.stationsLeastPlayedArtists[station_id] = [];
+				stats.stationsMostPlayedChristmasSongs[station_id] = [];
+				stats.stationsLeastPlayedChristmasSongs[station_id] = [];
 			}
 		}
-		// Add each song plus their count to every station in top_songs
+
 		var songs = this.getSongData();
-		var song, song_id, j;
+		var song, song_id, song_name, artist_id, is_christmas_song;
+		var i, play_count;
 		for (song_id in songs) {
 			if (songs.hasOwnProperty(song_id)) {
 				song = songs[song_id];
+				if (typeof all_songs[song_id] === 'undefined') {
+					all_songs[song_id] = [song[0], song[1], 0];							// [Song Name, Artist Name, Play Count]	
+				}
+				
+				artist_id = songs_table[song_id][SONGS_COL_ARTIST_ID];
+				if (typeof all_artists[artist_id] === 'undefined') {
+					all_artists[artist_id] = [song[1], 0];								// [Artist Name, Play Count]
+				}
+				
+				is_christmas_song = false;
+				for (i=0; i<CHRISTMAS_KEYWORDS.length; i++) {
+					song_name = song[0].toLowerCase();
+					if (song_name.indexOf(CHRISTMAS_KEYWORDS[i]) > -1) {
+						is_christmas_song = true;
+						if (typeof all_christmas_songs[song_id] === 'undefined') {
+							all_christmas_songs[song_id] = [song[0], song[1], 0];		// [Song Name, Artist Name, Play Count]
+						}
+						break;
+					}
+				}
+				
 				for (station_id in song[2]) {
 					if (song[2].hasOwnProperty(station_id)) {
 						if (song[2][station_id] <= 0) {
 							continue;
 						}
-						restructured_songs[station_id].push([song[SONGS_COL_NAME], song[1], song[2][station_id]]);		// [Song Name, Artist Name, Station Count]
+						song = [song[SONGS_COL_NAME], song[1], song[2][station_id]];	// [Song Name, Artist Name, Station Play Count]
+						songs_by_station[station_id].push(song);
+						
+						// Add to play counts
+						play_count = song[2];
+						if (typeof artists_by_station[station_id][artist_id] === 'undefined') {
+							artists_by_station[station_id][artist_id] = [song[1], play_count];		// [Artist Name, Station Play Count]
+						}
+						else {
+							artists_by_station[station_id][artist_id][1] += play_count;
+						}
+						all_songs[song_id][2] += play_count;
+						all_artists[artist_id][1] += play_count;
+						
+												
+						// Christmas songs per station
+						if (is_christmas_song) {
+							christmas_songs_by_station[station_id].push(song);
+							all_christmas_songs[song_id][2] += play_count;
+						}
 					}
 				}
 			}
 		}
-debug(['Before sort', restructured_songs]);
-		// Loop through the stations yet again to sort them
-		for (station_id in restructured_songs) {
-			if (restructured_songs.hasOwnProperty(station_id)) {
-				restructured_songs[station_id] = restructured_songs[station_id].slice().sort(sortSongsByPlayCount);
-				if (limit > 0) {
-					// Slice the top and bottom entries for us to be able to get descending order without performing a reverse on the all of the songs
-					song_stats.most[station_id] = restructured_songs[station_id].slice(restructured_songs[station_id].length - limit, restructured_songs[station_id].length);
-					song_stats.least[station_id] = restructured_songs[station_id].slice(0, limit);
-					restructured_songs[station_id] = null;
+
+		// Sort from most to least played
+		// Can't sort objects, so make their array counterparts
+		var artists_by_station_array = {};
+		for (station_id in artists_by_station) {
+			if (artists_by_station.hasOwnProperty(station_id)) {
+				artists_by_station_array[station_id] = [];
+				for (artist_id in artists_by_station[station_id]) {
+					if (artists_by_station[station_id].hasOwnProperty(artist_id)) {
+						artists_by_station_array[station_id].push([artists_by_station[station_id][artist_id][0], artists_by_station[station_id][artist_id][1]]);
+					}
 				}
-				song_stats.most[station_id].reverse();		// Descending order for top songs
 			}
 		}
-		debug(['Top songs:', song_stats.most, 'Bottom songs:', song_stats.least]);
-		return song_stats;
+		artists_by_station = null;
+		
+		var all_songs_array = [];
+		for (song_id in all_songs) {
+			if (all_songs.hasOwnProperty(song_id)) {
+				song = all_songs[song_id];
+				all_songs_array.push([song[0], song[1], song[2]]);
+			}
+		}
+		all_songs = null;
+		
+		var all_christmas_songs_array = [];
+		for (song_id in all_christmas_songs) {
+			if (all_christmas_songs.hasOwnProperty(song_id)) {
+				song = all_christmas_songs[song_id];
+				all_christmas_songs_array.push([song[0], song[1], song[2]]);
+			}
+		}
+		all_christmas_songs = null;
+		
+		var all_artists_array = [];
+		var artist;
+		for (artist_id in all_artists) {
+			if (all_artists.hasOwnProperty(artist_id)) {
+				artist = all_artists[artist_id];
+				all_artists_array.push([artist[0], artist[1]]);
+			}
+		}
+		all_artists = null;
+		
+		all_songs_array.sort(sortSongsByPlayCount);
+		all_artists_array.sort(sortArtistsByPlayCount);
+		all_christmas_songs_array.sort(sortSongsByPlayCount);
+		if (limit > 0) {
+			stats.mostPlayedSongs = all_songs_array.slice(all_songs_array.length - limit, all_songs_array.length);
+			stats.leastPlayedSongs = all_songs_array.slice(0, limit);
+			
+			stats.mostPlayedArtists = all_artists_array.slice(all_artists_array.length - limit, all_artists_array.length);
+			stats.leastPlayedArtists = all_artists_array.slice(0, limit);
+		
+			stats.mostPlayedChristmasSongs = all_christmas_songs_array.slice(all_christmas_songs_array.length - limit, all_christmas_songs_array.length);
+			stats.leastPlayedChristmasSongs = all_christmas_songs_array.slice(0, limit);
+		}
+		else {
+			stats.mostPlayedSongs = all_songs_array.slice();
+			stats.leastPlayedSongs = all_songs_array;		// No need to slice, we already have two different instances thanks to the previous slice
+			
+			stats.mostPlayedArtists = all_artists_array.slice();
+			stats.leastPlayedArtists = all_artists_array;
+			
+			stats.mostPlayedChristmasSongs = all_christmas_songs_array.slice();
+			stats.leastPlayedChristmasSongs = all_christmas_songs_array;
+		}
+		stats.mostPlayedSongs.reverse();
+		stats.mostPlayedArtists.reverse();
+		stats.mostPlayedChristmasSongs.reverse();
+
+		for (station_id in songs_by_station) {
+			if (songs_by_station.hasOwnProperty(station_id)) {
+				songs_by_station[station_id].sort(sortSongsByPlayCount);
+				christmas_songs_by_station[station_id].sort(sortSongsByPlayCount);
+				artists_by_station_array[station_id].sort(sortArtistsByPlayCount);
+				if (limit > 0) {
+					// Slice the top and bottom entries for us to be able to get descending order without performing a reverse on the all of the songs
+					stats.stationsMostPlayedSongs[station_id] = songs_by_station[station_id].slice(songs_by_station[station_id].length - limit, songs_by_station[station_id].length);
+					stats.stationsLeastPlayedSongs[station_id] = songs_by_station[station_id].slice(0, limit);
+					
+					stats.stationsMostPlayedArtists[station_id] = artists_by_station_array[station_id].slice(artists_by_station_array[station_id].length - limit, artists_by_station_array[station_id].length);
+					stats.stationsLeastPlayedArtists[station_id] = artists_by_station_array[station_id].slice(0, limit);
+					
+					stats.stationsMostPlayedChristmasSongs[station_id] = christmas_songs_by_station[station_id].slice(christmas_songs_by_station[station_id].length - limit, christmas_songs_by_station[station_id].length);
+					stats.stationsLeastPlayedChristmasSongs[station_id] = christmas_songs_by_station[station_id].slice(0, limit);
+				}
+				else {
+					stats.stationsMostPlayedSongs[station_id] = songs_by_station[station_id].slice();
+					stats.stationsLeastPlayedSongs[station_id] = songs_by_station[station_id];
+					
+					stats.stationsMostPlayedArtists[station_id] = artists_by_station_array[station_id].slice();
+					stats.stationsLeastPlayedArtists[station_id] = artists_by_station_array[station_id];
+					
+					stats.stationsMostPlayedChristmasSongs[station_id] = christmas_songs_by_station[station_id].slice();
+					stats.stationsLeastPlayedChristmasSongs[station_id] = christmas_songs_by_station[station_id];
+				}
+				stats.stationsMostPlayedSongs[station_id].reverse();		// Descending order for top songs
+				stats.stationsMostPlayedArtists[station_id].reverse();
+				stats.stationsMostPlayedChristmasSongs[station_id].reverse();
+			}
+		}
+		debug(["Stations' most played songs:", stats.stationsMostPlayedSongs, "Stations' least played songs:", stats.stationsLeastPlayedSongs]);
+		debug(["Most played songs:", stats.mostPlayedSongs, "Least played songs:", stats.leastPlayedSongs]);
+		debug(["Stations' most played artists:", stats.stationsMostPlayedArtists, "Stations' least played artists:", stats.stationsLeastPlayedArtists]);
+		debug(["Most played artists:", stats.mostPlayedArtists, "Least played artists:", stats.leastPlayedArtists]);
+		debug(["Stations' most played Christmas songs:", stats.stationsMostPlayedChristmasSongs, "Stations' least played Christmas songs:", stats.stationsLeastPlayedChristmasSongs]);		
+		debug(["Most played Christmas songs:", stats.mostPlayedChristmasSongs, "Least played Christmas songs:", stats.leastPlayedChristmasSongs]);
+		
+		return stats;
+	};
+	
+	var getStation = function(station_id) {
+		return this.radioData.stations[station_id];
 	};
 	
 	// -- Private --
@@ -236,10 +400,10 @@ debug(['Before sort', restructured_songs]);
 		}
 		
 		// Equal
-		return sortSongsBySongName(a, b);
+		return sortSongsByName(a, b);
 	}
 	
-	function sortSongsBySongName(a, b) {
+	function sortSongsByName(a, b) {
 		var name1 = a[0].toLowerCase();
 		var name2 = b[0].toLowerCase();
 		if (name1 < name2) {
@@ -263,7 +427,22 @@ debug(['Before sort', restructured_songs]);
 			return 1;
 		}
 		
-		return 0;			// Equal
+		// Equal
+		return sortArtistsByName(a, b);
+	}
+	
+	function sortArtistsByName(a, b) {
+		var name1 = a[0].toLowerCase();
+		var name2 = b[0].toLowerCase();
+		
+		if (name1 < name2) {
+			return -1;
+		}
+		else if (name1 > name2) {
+			return 1;
+		}
+		
+		return 0;		// Equal
 	}
 
 	// -- Interface --
@@ -277,7 +456,8 @@ debug(['Before sort', restructured_songs]);
 		instance.getArtistData = getArtistData;
 		instance.getPlaylistsData = getPlaylistsData;
 		instance.getSearchData = getSearchData;
-		instance.getMostAndLeastPlayedSongsForStations = getMostAndLeastPlayedSongsForStations;
+		instance.getStats = getStats;
+		instance.getStation = getStation;
 		return instance;
 	};
 	// Constants
