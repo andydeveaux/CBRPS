@@ -105,7 +105,7 @@ table.songlist
 	border-collapse: collapse;
 }
 
-table.songlist th
+table.songlist th, table.spanned-list th
 {
 	padding: 5px;
 	background-color: black;
@@ -128,4 +128,24 @@ table.songlist > tbody td:first-child
 table.songlist > tbody > tr:nth-child(even)
 {
 	background-color: #dedede;
+}
+
+table.spanned-list
+{
+	width: 100%;
+	border-collapse: collapse;
+	border: 1px outset;
+}
+
+table.spanned-list td
+{
+	padding: 5px;
+}
+
+tr.row-start td, td.border-me {
+	border: 1px outset;
+}
+
+.center-align {
+	text-align: center;
 }

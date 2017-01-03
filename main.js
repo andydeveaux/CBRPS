@@ -146,13 +146,16 @@
 		removeCurrentDisplayData();
 		
 		var limit = 20;
-		var parsed = parseInt(txtLimitStats.value);
+		var limit_display = 'The ' + limit;
+		var parsed = parseInt(txtLimitStats.value, 10);
 		if (!isNaN(parsed)) {
 			if (parsed <= 0) {
 				limit = 0;
+				limit_display = 'The ';
 			}
 			else {
 				limit = parsed;
+				limit_display = 'The ' + limit;
 			}
 			txtLimitStats.value = limit;
 		}
@@ -166,10 +169,12 @@
 		var SONG_COLUMNS = ['Song Name', 'Artist Name', 'Play Count'];
 		var ARTIST_COLUMNS = ['Artist Name', 'Play Count'];		
 		var LOOP_DATA = [
-			{title: 'The ' + limit + ' Most Played Songs', columns: SONG_COLUMNS, id: 'most-played-songs', stats: stats.mostPlayedSongs},
-			{title: 'The ' + limit + ' Least Played Songs', columns: SONG_COLUMNS, id: 'least-played-songs', stats: stats.leastPlayedSongs},
-			{title: 'The ' + limit + ' Most Played Artists', columns: ARTIST_COLUMNS, id: 'most-played-artists', stats: stats.mostPlayedArtists},
-			{title: 'The ' + limit + ' Least Played Artists', columns: ARTIST_COLUMNS, id: 'least-played-artists', stats: stats.leastPlayedArtists}
+			{title: limit_display + ' Most Played Songs', columns: SONG_COLUMNS, id: 'most-played-songs', stats: stats.mostPlayedSongs},
+			{title: limit_display + ' Least Played Songs', columns: SONG_COLUMNS, id: 'least-played-songs', stats: stats.leastPlayedSongs},
+			{title: limit_display + ' Most Played Artists', columns: ARTIST_COLUMNS, id: 'most-played-artists', stats: stats.mostPlayedArtists},
+			{title: limit_display + ' Least Played Artists', columns: ARTIST_COLUMNS, id: 'least-played-artists', stats: stats.leastPlayedArtists},
+			{title: limit_display + ' Most Played Christmas Songs', columns: SONG_COLUMNS, id: 'most-played-xmas-songs', stats: stats.mostPlayedChristmasSongs},
+			{title: limit_display + ' Least Played Christmas Songs', columns: SONG_COLUMNS, id: 'least-played-xmas-songs', stats: stats.leastPlayedChristmasSongs}
 		];
 		var i;
 		for (i=0; i<LOOP_DATA.length; i++) {
@@ -185,12 +190,12 @@
 		for (station_id in stats.stationsMostPlayedSongs) {
 			if (stats.stationsMostPlayedSongs.hasOwnProperty(station_id)) {
 				station_loop_data = [
-					{title: 'The ' + limit + ' Most Played Songs', columns: SONG_COLUMNS, id: station_id + '-most-played-songs', stats: stats.stationsMostPlayedSongs[station_id]},
-					{title: 'The ' + limit + ' Least Played Songs', columns: SONG_COLUMNS, id: station_id + '-least-played-songs', stats: stats.stationsLeastPlayedSongs[station_id]},
-					{title: 'The ' + limit + ' Most Played Artists', columns: ARTIST_COLUMNS, id: station_id + '-most-played-artists', stats: stats.stationsMostPlayedArtists[station_id]},
-					{title: 'The ' + limit + ' Least Played Artists', columns: ARTIST_COLUMNS, id: station_id + '-least-played-artists', stats: stats.stationsLeastPlayedArtists[station_id]},
-					{title: 'The ' + limit + ' Most Played Christmas Songs', columns: SONG_COLUMNS, id: station_id + '-most-played-xmas-songs', stats: stats.stationsMostPlayedChristmasSongs[station_id]},
-					{title: 'The ' + limit + ' Least Played Christmas Songs', columns: SONG_COLUMNS, id: station_id + '-least-played-xmas-songs', stats: stats.stationsLeastPlayedChristmasSongs[station_id]}
+					{title: limit_display + ' Most Played Songs', columns: SONG_COLUMNS, id: station_id + '-most-played-songs', stats: stats.stationsMostPlayedSongs[station_id]},
+					{title: limit_display + ' Least Played Songs', columns: SONG_COLUMNS, id: station_id + '-least-played-songs', stats: stats.stationsLeastPlayedSongs[station_id]},
+					{title: limit_display + ' Most Played Artists', columns: ARTIST_COLUMNS, id: station_id + '-most-played-artists', stats: stats.stationsMostPlayedArtists[station_id]},
+					{title: limit_display + ' Least Played Artists', columns: ARTIST_COLUMNS, id: station_id + '-least-played-artists', stats: stats.stationsLeastPlayedArtists[station_id]},
+					{title: limit_display + ' Most Played Christmas Songs', columns: SONG_COLUMNS, id: station_id + '-most-played-xmas-songs', stats: stats.stationsMostPlayedChristmasSongs[station_id]},
+					{title: limit_display + ' Least Played Christmas Songs', columns: SONG_COLUMNS, id: station_id + '-least-played-xmas-songs', stats: stats.stationsLeastPlayedChristmasSongs[station_id]}
 				];
 				
 				songDataDisplay.appendChild(generateElementWithText('h2', stations[station_id][0]));
@@ -209,7 +214,63 @@
 		selectButton(e.target || e.srcElement, 'show', onButtonShowAllArtistsClick);
 		removeCurrentDisplayData();
 		
-		var data = radioQuery.getArtistData();
+		songDataDisplay.appendChild(generateElementWithText('h2', 'All Artists'));
+		var artists = radioQuery.getArtistData();
+		var stations = radioQuery.getAllStations();
+		var artist_id, station_id;
+		var record, total_play_count;
+		var row_index = 1, i;
+		var row, cell;
+		var pending_rows;					// Generated rows that need to be appended at the end of the inner loop
+		var table = generateTable(['Artist Name', 'Station', 'Play Count'], []);		// Generate an empty table because we need to do row spanning with certain rows
+		var table_ref = table.getElementsByTagName('table')[0];
+		table_ref.className = 'spanned-list';
+		for (artist_id in artists) {
+			if (artists.hasOwnProperty(artist_id)) {
+				record = artists[artist_id];
+				pending_rows = [];
+				total_play_count = 0;
+				for (station_id in artists[artist_id][1]) {
+					if (record[1].hasOwnProperty(station_id)) {
+						if (record[1][station_id] <= 0) {
+							continue;
+						}
+												
+						if (total_play_count === 0) {
+							total_play_count += record[1][station_id];
+							row = generateTableRow([row_index, record[0], stations[station_id][0], record[1][station_id]]);
+							row.className = 'row-start';
+						}
+						else {
+							total_play_count += record[1][station_id];
+							row = document.createElement('tr');
+							cell = document.createElement('td');
+							cell.setAttribute('colspan', '2');
+							row.appendChild(cell);
+							row.appendChild(generateElementWithText('td', stations[station_id][0], {className: 'border-me'}));
+							row.appendChild(generateElementWithText('td', record[1][station_id], {className: 'border-me'}));
+						}
+						pending_rows.push(row);
+					}
+				}
+				
+				row = document.createElement('tr');
+				cell = document.createElement('td');
+				cell.setAttribute('colspan', '2');
+				row.appendChild(cell);
+				cell = generateElementWithText('td', 'Total: ' + total_play_count, {style: 'border: 1px outset; padding-left: 10px'});
+				cell.setAttribute('colspan', '2');
+				row.appendChild(cell);
+				pending_rows.push(row);
+				
+				for (i=0; i<pending_rows.length; i++) {
+					table_ref.tBodies[0].appendChild(pending_rows[i]);
+				}
+				row_index += 1;
+			}
+		}
+		songDataDisplay.appendChild(table);
+		songDataDisplay.appendChild(generateLink('#data-box', 'Go to Top', false));
 	}
 	
 	function onButtonShowAllSongsClick(e) {
@@ -234,7 +295,7 @@
 	}
 	
 	function onButtonSearchClick(e) {
-		var data = RadioQuery.getSearchData(radioData, searchStationSelect.value, txtSearchSong, txtSearchArtist, searchSortBy, searchSortOrder === 'asc' ? true : false);
+		var data = radioQuery.getSearchData(searchStationSelect.value, txtSearchSong, txtSearchArtist, searchSortBy, searchSortOrder === 'asc' ? true : false);
 	}
 	
 	function onRadioDataDownloaded(http_req) {
@@ -346,10 +407,12 @@
 		thead.appendChild(generateTableRow(['#'].concat(columns), true));
 		
 		var tbody = document.createElement('tbody');
-		var i, last_index = data[0].length - 1;
-		for (i=0; i<data.length; i++) {
-			data[i][last_index] = data[i][last_index] + ' times';
-			tbody.appendChild(generateTableRow([i+1].concat(data[i])));
+		var new_data = data.slice();			// Make new copy so we can prepend the row index and other things
+		var i, last_index = columns.length;
+		for (i=0; i<new_data.length; i++) {
+			new_data[i] = [i+1].concat(new_data[i]);
+			new_data[i][last_index] = new_data[i][last_index] + ' times';
+			tbody.appendChild(generateTableRow(new_data[i]));
 		}
 		
 		table.appendChild(thead);
@@ -370,7 +433,7 @@
 		var row = document.createElement('tr');	
 		var i;
 		for (i=0; i<cells.length; i++) {
-			row.appendChild(generateElementWithText(cell_type, cells[i]));
+				row.appendChild(generateElementWithText(cell_type, cells[i]));
 		}
 		return row;
 	}
@@ -387,7 +450,12 @@
 			var a;
 			for (a in attribs) {
 				if (attribs.hasOwnProperty(a)) {
-					element.setAttribute(a, attribs[a]);
+					if (a === 'className') {
+						element.className = attribs[a];
+					}
+					else {
+						element.setAttribute(a, attribs[a]);
+					}
 				}
 			}
 		}
