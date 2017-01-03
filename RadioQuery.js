@@ -6,7 +6,7 @@
 (function() {
 	'use strict';
 	
-	var DEBUG = true;
+	var DEBUG = false;
 	function debug(messages) {
 		if (DEBUG) {
 			var i;
@@ -289,6 +289,10 @@
 		return this.radioData.stations[station_id];
 	};
 	
+	var getAllStations = function() {
+		return this.radioData.stations;
+	}
+	
 	// -- Private --
 	// Fetches all song data with artist names joined
 	function fetchAllSongs(rq) {
@@ -458,6 +462,7 @@
 		instance.getSearchData = getSearchData;
 		instance.getStats = getStats;
 		instance.getStation = getStation;
+		instance.getAllStations = getAllStations;
 		return instance;
 	};
 	// Constants

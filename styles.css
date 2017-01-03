@@ -84,9 +84,19 @@ nav > button.selected
 .playlist-container
 {
 	width: 90%;
-	max-height: 550px;
+	max-height: 520px;
 	overflow-y: auto;
 	margin-bottom: 40px;
+}
+
+ul.linklist {
+	list-style-type: decimal;
+}
+
+ul.linklist ul {
+	list-style-type: none;
+	margin-left: 0;
+	padding-left: 15px
 }
 
 table.songlist
