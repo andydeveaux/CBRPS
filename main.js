@@ -220,7 +220,7 @@
 		var artist_id, station_id;
 		var record, total_play_count;
 		var row_index = 1, i;
-		var row, cell;
+		var row;
 		var pending_rows;					// Generated rows that need to be appended at the end of the inner loop
 		var table = generateTable(['Artist Name', 'Station', 'Play Count'], []);		// Generate an empty table because we need to do row spanning with certain rows
 		var table_ref = table.getElementsByTagName('table')[0];
@@ -235,32 +235,28 @@
 						if (record[1][station_id] <= 0) {
 							continue;
 						}
-												
+						
+						// First row for this artist
 						if (total_play_count === 0) {
-							total_play_count += record[1][station_id];
 							row = generateTableRow([row_index, record[0], stations[station_id][0], record[1][station_id]]);
+							row.children[1].setAttribute('style', 'max-width: 150px');
 							row.className = 'row-start';
 						}
 						else {
-							total_play_count += record[1][station_id];
 							row = document.createElement('tr');
-							cell = document.createElement('td');
-							cell.setAttribute('colspan', '2');
-							row.appendChild(cell);
+							row.appendChild(generateElementWithText('td', null, {colspan: 2}));
 							row.appendChild(generateElementWithText('td', stations[station_id][0], {className: 'border-me'}));
-							row.appendChild(generateElementWithText('td', record[1][station_id], {className: 'border-me'}));
+							row.appendChild(generateElementWithText('td', record[1][station_id], {className: 'border-me', style: 'text-align: center'}));
 						}
+						total_play_count += record[1][station_id];
 						pending_rows.push(row);
 					}
 				}
 				
 				row = document.createElement('tr');
-				cell = document.createElement('td');
-				cell.setAttribute('colspan', '2');
-				row.appendChild(cell);
-				cell = generateElementWithText('td', 'Total: ' + total_play_count, {style: 'border: 1px outset; padding-left: 10px'});
-				cell.setAttribute('colspan', '2');
-				row.appendChild(cell);
+				row.appendChild(generateElementWithText('td', null, {colspan: 2}));
+				row.appendChild(generateElementWithText('td', null, {className: 'border-me', style: 'border-right: 0'}));
+				row.appendChild(generateElementWithText('td', 'Total: ' + total_play_count, {style: 'font-weight: 700'}));
 				pending_rows.push(row);
 				
 				for (i=0; i<pending_rows.length; i++) {
@@ -277,7 +273,60 @@
 		selectButton(e.target || e.srcElement, 'show', onButtonShowAllSongsClick);
 		removeCurrentDisplayData();
 		
-		var data = radioQuery.getSongData();
+		var songs = radioQuery.getSongData();
+		var stations = radioQuery.getAllStations();
+		songDataDisplay.appendChild(generateElementWithText('h2', 'All Songs'));
+		var table = generateTable(['Song Name', 'Artist Name', 'Station', 'Play Count'], []);
+		var table_ref = table.getElementsByTagName('table')[0];
+		table_ref.className = 'spanned-list';
+		var song_id, station_id;
+		var row, record, pending_rows;
+		var song_index = 1;
+		var i;
+		var total_play_count;
+		for (song_id in songs) {
+			if (songs.hasOwnProperty(song_id)) {
+				total_play_count = 0;
+				pending_rows = [];
+				record = songs[song_id];
+				for (station_id in songs[song_id][2]) {
+					if (record[2].hasOwnProperty(station_id)) {
+						if (record[2][station_id] <= 0) {
+							continue;
+						}
+						
+						// First row for this song
+						if (total_play_count <= 0) {
+							row = generateTableRow([song_index, record[0], record[1], stations[station_id][0], record[2][station_id]]);
+							row.children[1].setAttribute('style', 'max-width: 200px');
+							row.children[2].setAttribute('style', 'max-width: 200px');
+							row.className = 'row-start';
+						}
+						else {
+							row = document.createElement('tr');
+							row.appendChild(generateElementWithText('td', null, {colspan: 3}));
+							row.appendChild(generateElementWithText('td', stations[station_id][0], {className: 'border-me'}));
+							row.appendChild(generateElementWithText('td', record[2][station_id], {className: 'border-me'}));
+						}
+						total_play_count += record[2][station_id];
+						pending_rows.push(row);
+					}
+				}
+				// Total play count row
+				row = document.createElement('tr');
+				row.appendChild(generateElementWithText('td', null, {colspan: 3}));
+				row.appendChild(generateElementWithText('td', null, {className: 'border-me', style: 'border-right: 0'}));
+				row.appendChild(generateElementWithText('td', 'Total: ' + total_play_count, {style: 'font-weight: 700'}));
+				pending_rows.push(row);
+				
+				song_index += 1;
+				for (i=0; i<pending_rows.length; i++) {
+					table_ref.tBodies[0].appendChild(pending_rows[i]);
+				}
+			}
+		}
+		songDataDisplay.appendChild(table);
+		songDataDisplay.appendChild(generateLink('#data-box', 'Go to Top', false));
 	}
 	
 	function onButtonShowPlaylistsClick(e) {
@@ -382,7 +431,7 @@
 		var link = document.createElement('a');
 		link.setAttribute('href', url);
 		if (new_window) {
-			link.setAttribute('target', '_window');
+			link.setAttribute('target', '_blank');
 		}
 		if (typeof link.innerText !== 'string') {
 			link.innerText = text.replace(/\&/g, '&amp;');
@@ -459,7 +508,9 @@
 				}
 			}
 		}
-		element.appendChild(document.createTextNode(text));
+		if (text !== null) {
+			element.appendChild(document.createTextNode(text));
+		}
 		return element;
 	}
 	

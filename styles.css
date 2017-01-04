@@ -139,13 +139,21 @@ table.spanned-list
 
 table.spanned-list td
 {
-	padding: 5px;
+	padding-left: 10px;
+	padding-right: 10px;
 }
 
-tr.row-start td, td.border-me {
+table.spanned-list td:first-child, table.spanned-list td:last-child
+{
+	text-align: center;
+}
+
+tr.row-start td, td.border-me 
+{
 	border: 1px outset;
 }
 
-.center-align {
+.center-align 
+{
 	text-align: center;
 }
