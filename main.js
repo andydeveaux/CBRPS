@@ -14,7 +14,6 @@
 	var btnShowAllArtists;
 	var btnShowAllSongs;
 	var btnShowPlaylists;
-	var btnShowSearch;
 	
 	var dataDownloadBox;
 	var dataBox;
@@ -26,7 +25,6 @@
 	var txtSearchArtist;
 	var searchSortBy;
 	var searchSortOrder;
-	var btnSearch;
 	
 	var songDataDisplay;
 	
@@ -35,6 +33,8 @@
 	var playlistStationSelect;
 	
 	var radioQuery;			// Object for holding all of the radio data
+	var cachedData;			// Full reults from one of the RadioQuery functions, cached for faster filtering
+	var cachedDataType;		// Identification for knowing when to overwrite the cached data when the user selects a different function
 	var downloadRadioDataAttempts;
 	var prevSelectedButton;
 	
@@ -77,7 +77,6 @@
 		btnShowAllArtists = getElement('btn-show-all-artists');
 		btnShowAllSongs = getElement('btn-show-all-songs');
 		btnShowPlaylists = getElement('btn-show-playlists');
-		btnShowSearch = getElement('btn-show-search');
 		
 		dataDownloadBox = getElement('data-download-box');
 		dataBox = getElement('data-box');
@@ -88,7 +87,6 @@
 		txtSearchArtist = getElement('txt-search-artist');
 		searchSortBy = getElement('search-sort-by');
 		searchSortOrder = getElement('search-sort-order');
-		btnSearch = getElement('btn-search');
 		
 		songDataDisplay = getElement('song-data');
 		
@@ -333,18 +331,21 @@
 		selectButton(e.target || e.srcElement, 'show', onButtonShowPlaylistsClick);
 		removeCurrentDisplayData();
 		
-		var data = radioQuery.getPlaylistsData();
-	}
-	
-	function onButtonShowSearchClick(e) {
-		selectButton(e.target || e.srcElement, 'show', onButtonShowSearchClick);
-		removeCurrentDisplayData();
-		
-		searchBox.className = '';
-	}
-	
-	function onButtonSearchClick(e) {
-		var data = radioQuery.getSearchData(searchStationSelect.value, txtSearchSong, txtSearchArtist, searchSortBy, searchSortOrder === 'asc' ? true : false);
+		var playlists = radioQuery.getPlaylistsData();
+		var stations = radioQuery.getAllStations();
+		var station_id;
+		var table;
+		var i;
+		songDataDisplay.appendChild(generateElementWithText('h2', 'Playlists'));
+		for (station_id in playlists) {
+			if (playlists.hasOwnProperty(station_id)) {
+				songDataDisplay.appendChild(generateStationHeader(stations[station_id][0], stations[station_id][1], 'Playlist'));
+				table = generateTable(['Song Name', 'Artist Name', 'Original Time', 'Formatted Time'], playlists[station_id], station_id + '-playlist', true);
+				songDataDisplay.appendChild(table);
+				songDataDisplay.appendChild(generateLink('#data-box', 'Go to Top', false));
+				songDataDisplay.appendChild(document.createElement('br'));
+			}
+		}
 	}
 	
 	function onRadioDataDownloaded(http_req) {
@@ -393,7 +394,6 @@
 		addEventListener(btnShowAllArtists, 'click', onButtonShowAllArtistsClick);
 		addEventListener(btnShowAllSongs, 'click', onButtonShowAllSongsClick);
 		addEventListener(btnShowPlaylists, 'click', onButtonShowPlaylistsClick);
-		addEventListener(btnShowSearch, 'click', onButtonShowSearchClick);
 		
 		dataBox.className = '';
 	}
@@ -442,7 +442,7 @@
 		return link;
 	}
 	
-	function generateTable(columns, data, id) {
+	function generateTable(columns, data, id, no_appending) {
 		var container = document.createElement('div');
 		container.className = 'playlist-container';
 		
@@ -460,7 +460,10 @@
 		var i, last_index = columns.length;
 		for (i=0; i<new_data.length; i++) {
 			new_data[i] = [i+1].concat(new_data[i]);
-			new_data[i][last_index] = new_data[i][last_index] + ' times';
+			if (!no_appending) {
+				new_data[i][last_index] = new_data[i][last_index] + ' times';
+			}
+			
 			tbody.appendChild(generateTableRow(new_data[i]));
 		}
 		
