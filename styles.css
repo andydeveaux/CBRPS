@@ -11,11 +11,15 @@ body
 {
 	font-size: 1.4rem;
 	font-family: 'Open Sans', sans-serif;
-	line-height: 2rem;
+	line-height: 140%;
 	margin: 0;
 	background-color: darkslateblue;
 	height: 100%;
 	box-sizing: border-box;
+}
+
+h1 {
+	line-height: 100%;
 }
 
 a:hover
@@ -30,7 +34,7 @@ label
 
 .hidden
 {
-	display: none;
+	display: none !important;
 }
 
 #search > input[type="text"], #search > select
@@ -71,14 +75,23 @@ nav.links a
 	margin-top: -10px;
 }
 
-nav > button
-{
-	margin-right: 10px;
+.inline-box {
+	display: inline-block;
 }
 
-nav > button.selected
-{
-	border-style: inset;
+.data-selection > label {
+	margin-right: 20px;
+}
+
+#filter-box {
+	border: 1px outset;
+	margin-top: 20px;
+	padding: 15px;
+	display: inline-block;
+}
+
+#filter-box h4 {
+	margin-top: 0;
 }
 
 .playlist-container

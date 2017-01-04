@@ -9,34 +9,38 @@
 	var RADIO_DATA_FILE = 'playlists_data.json';
 	
 	var btnFetchData;
-	var txtLimitStats;
-	var btnShowStatistics;
-	var btnShowAllArtists;
-	var btnShowAllSongs;
-	var btnShowPlaylists;
-	
+	var lblFetchStatus;
 	var dataDownloadBox;
+	
+	var optStatistics;
+	var optSongs;
+	var optArtists;
+	var optPlaylists;
+	
+	// Filter
+	var filterBoxStation;
+	var filterBoxSong;
+	var filterBoxArtist;
+	var filterBoxSortBy;
+	var filterBoxSortOrder;
+	var filterBoxLimit;
+	var selFilterStation;
+	var txtFilterSong;
+	var txtFilterArtist;
+	var selFilterSortBy;
+	var selFilterSortOrder;
+	var txtFilterLimit;
+	var selFilterLimit;
+	var btnFilterSubmit;
+	var btnFilterReset;
+	
 	var dataBox;
+	var songDataBox;
 	
-	// Search
-	var searchBox;
-	var searchStationSelect;
-	var txtSearchSong;
-	var txtSearchArtist;
-	var searchSortBy;
-	var searchSortOrder;
-	
-	var songDataDisplay;
-	
-	// Playlist filter
-	var playlistFilter;
-	var playlistStationSelect;
-	
-	var radioQuery;			// Object for holding all of the radio data
-	var cachedData;			// Full reults from one of the RadioQuery functions, cached for faster filtering
-	var cachedDataType;		// Identification for knowing when to overwrite the cached data when the user selects a different function
+	var radioQuery;					// Object for holding all of the radio data
+	var cachedData;					// Full reults from one of the RadioQuery functions, cached for faster filtering
 	var downloadRadioDataAttempts;
-	var prevSelectedButton;
+	var currentSelectedOption;
 	
 	// Compatibility stuff
 	function addEventListener(target, type, callback, options) {
@@ -58,6 +62,16 @@
 			target.detachEvent('on' + type, callback);
 		}
 	}
+		
+	function setInnerText(element, text) {
+		if (typeof element.innerText !== 'string') {
+			element.innerText = text;
+		}
+		// Firefox < 45
+		else {
+			element.textContent = text;
+		}
+	}
 	
 	// Adds constants to object prototypes if they don't exist
 	function addPrototypeConstants(obj, const_name, value) {
@@ -71,27 +85,38 @@
 		var getElement = function(id) {
 			return document.getElementById(id);
 		};
-		btnFetchData = getElement('btn-fetch-data');
-		txtLimitStats = getElement('txt-limit-stats');
-		btnShowStatistics = getElement('btn-show-statistics');
-		btnShowAllArtists = getElement('btn-show-all-artists');
-		btnShowAllSongs = getElement('btn-show-all-songs');
-		btnShowPlaylists = getElement('btn-show-playlists');
 		
+		// Fetch data
 		dataDownloadBox = getElement('data-download-box');
+		btnFetchData = getElement('btn-fetch-data');
+		lblFetchStatus = getElement('lbl-fetch-status');
+		
+		// Display boxes
 		dataBox = getElement('data-box');
+		songDataBox = getElement('song-data');
 		
-		searchBox = getElement('search');
-		searchStationSelect = getElement('search-station');
-		txtSearchSong = getElement('txt-search-song');
-		txtSearchArtist = getElement('txt-search-artist');
-		searchSortBy = getElement('search-sort-by');
-		searchSortOrder = getElement('search-sort-order');
+		// Data choices
+		optStatistics = getElement('opt-statistics');
+		optSongs = getElement('opt-songs');
+		optArtists = getElement('opt-artists');
+		optPlaylists = getElement('opt-playlists');
 		
-		songDataDisplay = getElement('song-data');
-		
-		playlistFilter = getElement('playlist-filter');
-		playlistStationSelect = getElement('playlist-station');
+		// Filter
+		filterBoxStation = getElement('filter-box-station');
+		filterBoxSong = getElement('filter-box-song');
+		filterBoxArtist = getElement('filter-box-artist');
+		filterBoxSortBy = getElement('filter-box-sort-by');
+		filterBoxSortOrder = getElement('filter-box-sort-order');
+		filterBoxLimit = getElement('filter-box-limit');
+		selFilterStation = getElement('sel-filter-station');
+		txtFilterSong = getElement('txt-filter-song');
+		txtFilterArtist = getElement('txt-filter-artist');
+		selFilterSortBy = getElement('sel-filter-sort-by');
+		selFilterSortOrder = getElement('sel-filter-sort-order');
+		txtFilterLimit = getElement('txt-filter-limit');
+		selFilterLimit = getElement('sel-filter-limit');
+		btnFilterSubmit = getElement('btn-filter-submit');
+		btnFilterReset = getElement('btn-filter-reset');
 		
 		// Add XMLHttpRequest state constants for IE
 		addPrototypeConstants(XMLHttpRequest, 'UNSENT', 0);
@@ -103,63 +128,196 @@
 		addEventListener(btnFetchData, 'click', onButtonFetchDataClick);
 	}
 	
+	function downloadRadioData()
+	{
+		console.log('Downloading data...');
+		downloadRadioDataAttempts += 1;
+		var http_req = new XMLHttpRequest();
+		http_req.open('GET', RADIO_DATA_FILE, true);
+		http_req.overrideMimeType('application/json');
+		http_req.onreadystatechange = function() {
+			onRadioDataDownloaded(http_req);
+		};
+		http_req.send();
+	}
+	
+	function showRadioDataDownloadSuccess() {
+		unhideElement(dataBox);
+		setInnerText(lblFetchStatus, '');
+		
+		var stations = radioQuery.getAllStations();
+		var station_id;
+		for (station_id in stations) {
+			if (stations.hasOwnProperty(station_id)) {
+				selFilterStation.appendChild(generateElementWithText('option', stations[station_id][0], {value: station_id}));
+			}
+		}
+		
+		// Setup event handlers
+		addEventListener(optStatistics, 'click', onOptStatisticsClick);
+		addEventListener(optSongs, 'click', onOptSongsClick);
+		addEventListener(optArtists, 'click', onOptArtistsClick);
+		addEventListener(optPlaylists, 'click', onOptPlaylistsClick);
+		addEventListener(selFilterLimit, 'change', onSelFilterLimitChange);
+		addEventListener(btnFilterSubmit, 'click', onBtnFilterSubmitClick);
+		addEventListener(btnFilterReset, 'click', onBtnFilterResetClick);
+		
+		updateFilterUI();
+	}
+	
+	function showRadioDataDownloadFailure() {
+		unhideElement(btnFetchData);
+		setInnerText(lblFetchStatus, 'Download failed. Please try again.');
+		addEventListener(btnFetchData, 'click', onButtonFetchDataClick);
+	}
+	
+	function updateFilterUI() {
+		if (optStatistics.checked) {
+			selectOption(optStatistics, 'data_choice', onOptStatisticsClick);
+			hideElements([filterBoxSong, filterBoxArtist]);
+			unhideElements([filterBoxStation, filterBoxSortBy, filterBoxSortOrder, filterBoxLimit]);
+			
+			clearChildren(selFilterSortBy);
+			selFilterSortBy.appendChild(generateElementWithText('option', 'Play Count', {value: 'playcount'}));
+			selFilterSortBy.appendChild(generateElementWithText('option', 'Song', {value: 'song'}));
+			selFilterSortBy.appendChild(generateElementWithText('option', 'Artist', {value: 'artist'}));
+		}
+		else if (optSongs.checked) {
+			selectOption(optSongs, 'data_choice', onOptSongsClick);
+			unhideElements([filterBoxStation, filterBoxSong, filterBoxArtist, filterBoxSortBy, filterBoxSortOrder, filterBoxLimit]);
+			
+			clearChildren(selFilterSortBy);
+			selFilterSortBy.appendChild(generateElementWithText('option', 'Play Count', {value: 'playcount'}));
+			selFilterSortBy.appendChild(generateElementWithText('option', 'Song', {value: 'song'}));
+			selFilterSortBy.appendChild(generateElementWithText('option', 'Artist', {value: 'artist'}));
+		}
+		else if (optArtists.checked) {
+			selectOption(optArtists, 'data_choice', onOptArtistsClick);
+			hideElements([filterBoxSong]);
+			unhideElements([filterBoxStation, filterBoxArtist, filterBoxSortBy, filterBoxSortOrder, filterBoxLimit]);
+			
+			clearChildren(selFilterSortBy);
+			selFilterSortBy.appendChild(generateElementWithText('option', 'Play Count', {value: 'playcount'}));
+			selFilterSortBy.appendChild(generateElementWithText('option', 'Artist', {value: 'artist'}));
+		}
+		else if (optPlaylists.checked) {
+			selectOption(optPlaylists, 'data_choice', onOptPlaylistsClick);
+			unhideElements([filterBoxStation, filterBoxSong, filterBoxArtist, filterBoxSortBy, filterBoxSortOrder, filterBoxLimit]);
+			
+			clearChildren(selFilterSortBy);
+			selFilterSortBy.appendChild(generateElementWithText('option', 'Song', {value: 'song'}));
+			selFilterSortBy.appendChild(generateElementWithText('option', 'Artist', {value: 'artist'}));
+			selFilterSortBy.appendChild(generateElementWithText('option', 'Date', {value: 'date'}));
+		}
+		
+		txtFilterLimit.value = selFilterLimit.value;
+	}
+	
 	function removeCurrentDisplayData() {
 		var children_to_remove = [];
 		var i;
-		for (i=0; i<songDataDisplay.children.length; i++) {
-			if (songDataDisplay.children[i].id !== 'playlist-filter') {
-				children_to_remove.push(songDataDisplay.children[i]);
+		for (i=0; i<songDataBox.children.length; i++) {
+			if (songDataBox.children[i].id !== 'playlist-filter') {
+				children_to_remove.push(songDataBox.children[i]);
 			}
 		}
 		
 		for (i=0; i<children_to_remove.length; i++) {
-			songDataDisplay.removeChild(children_to_remove[i]);
+			songDataBox.removeChild(children_to_remove[i]);
 		}
-		
-		searchBox.className = 'hidden';
-		playlistFilter.className = 'hidden';
 	}
 	
-	function selectButton(button, group, callback) {
-		if (typeof prevSelectedButton === 'object' && prevSelectedButton.group === group) {
-			addEventListener(prevSelectedButton.button, 'click', prevSelectedButton.callback);
-			prevSelectedButton.button.className = '';
+	function selectOption(element, group, callback) {
+		if (typeof currentSelectedOption === 'object' && currentSelectedOption.group === group) {
+			addEventListener(currentSelectedOption.element, 'click', currentSelectedOption.callback);
 		}
 		
-		prevSelectedButton = { button: button, group: group, callback: callback };
-		button.className = 'selected';
-		removeEventListener(button, 'click', callback);
+		currentSelectedOption = { element: element, group: group, callback: callback };
+		addCSSClass(element, 'selected');
+		removeEventListener(element, 'click', callback);
+	}
+	
+	function onRadioDataDownloaded(http_req) {
+		if (http_req.readyState === http_req.DONE) {
+			var retry = false;
+			if (http_req.status === 200) {
+				console.log('Data downloaded.');
+				// If it failed to parse, the data probably didn't download correctly
+				try {
+					radioQuery = new RadioQuery(JSON.parse(http_req.responseText));
+					showRadioDataDownloadSuccess();
+				}
+				catch (e) {
+					console.log('Data failed to parse. Reason: ', e.message);
+					retry = true;
+				}
+			}
+			else {
+				console.log('Data failed to download.');
+				retry = true;
+			}
+			
+			if (retry) {
+				if (downloadRadioDataAttempts < MAX_DATA_DOWNLOAD_ATTEMPTS) {
+					console.log('Retrying.');
+					downloadRadioData();
+				}
+				else {
+					console.log('Max retry attempts reached.');
+					showRadioDataDownloadFailure();
+				}
+			}
+		}
 	}
 	
 	function onButtonFetchDataClick(e) {
 		removeEventListener(e.target || e.srcElement, 'click', onButtonFetchDataClick);
-		btnFetchData.className = 'hidden';
+		hideElement(btnFetchData);
 		
 		downloadRadioDataAttempts = 0;
 		downloadRadioData();
 	}
 	
-	function onButtonShowStatisticsClick(e) {
-		selectButton(e.target || e.srcElement, 'show', onButtonShowStatisticsClick);
+	function onOptStatisticsClick(e) {
+		updateFilterUI();
+	}
+	
+	function onOptSongsClick(e) {
+		updateFilterUI();
+	}
+	
+	function onOptArtistsClick(e) {
+		updateFilterUI();
+	}
+	
+	function onOptPlaylistsClick(e) {
+		updateFilterUI();
+	}
+	
+	function onSelFilterLimitChange(e) {
+		txtFilterLimit.value = selFilterLimit.value;
+	}
+	
+	function onBtnFilterSubmitClick(e) {
+		
+	}
+	
+	function onBtnFilterResetClick(e) {
+		selFilterStation.value = 'any';
+		txtFilterSong.value = '';
+		txtFilterArtist.value = '';
+		selFilterSortBy.selectedIndex = 0;
+		selFilterSortOrder.value = 'desc';
+		txtFilterLimit.value = '25';
+		selFilterLimit.value = '25';
+	}
+	
+	function showStatistics() {
 		removeCurrentDisplayData();
 		
 		var limit = 20;
 		var limit_display = 'The ' + limit;
-		var parsed = parseInt(txtLimitStats.value, 10);
-		if (!isNaN(parsed)) {
-			if (parsed <= 0) {
-				limit = 0;
-				limit_display = 'The ';
-			}
-			else {
-				limit = parsed;
-				limit_display = 'The ' + limit;
-			}
-			txtLimitStats.value = limit;
-		}
-		else {
-			txtLimitStats.value = limit;
-		}
+
 		var stats = radioQuery.getStats(limit);
 		
 		generateStatisticsLinkList();
@@ -176,12 +334,12 @@
 		];
 		var i;
 		for (i=0; i<LOOP_DATA.length; i++) {
-			songDataDisplay.appendChild(generateElementWithText('h2', LOOP_DATA[i].title, {id: LOOP_DATA[i].id}));
-			songDataDisplay.appendChild(generateTable(LOOP_DATA[i].columns, LOOP_DATA[i].stats));
-			songDataDisplay.appendChild(generateLink('#data-box', 'Go to Top', false));
+			songDataBox.appendChild(generateElementWithText('h2', LOOP_DATA[i].title, {id: LOOP_DATA[i].id}));
+			songDataBox.appendChild(generateTable(LOOP_DATA[i].columns, LOOP_DATA[i].stats));
+			songDataBox.appendChild(generateLink('#data-box', 'Go to Top', false));
 		}
-		songDataDisplay.appendChild(document.createElement('br'));
-		songDataDisplay.appendChild(document.createElement('hr'));
+		songDataBox.appendChild(document.createElement('br'));
+		songDataBox.appendChild(document.createElement('hr'));
 		
 		var stations = radioQuery.getAllStations();
 		var station_loop_data, station_id;
@@ -196,23 +354,22 @@
 					{title: limit_display + ' Least Played Christmas Songs', columns: SONG_COLUMNS, id: station_id + '-least-played-xmas-songs', stats: stats.stationsLeastPlayedChristmasSongs[station_id]}
 				];
 				
-				songDataDisplay.appendChild(generateElementWithText('h2', stations[station_id][0]));
+				songDataBox.appendChild(generateElementWithText('h2', stations[station_id][0]));
 				for (i=0; i<station_loop_data.length; i++) {
-					songDataDisplay.appendChild(generateStationHeader(stations[station_id][0], stations[station_id][1], station_loop_data[i].title, station_loop_data[i].id));
-					songDataDisplay.appendChild(generateTable(station_loop_data[i].columns, station_loop_data[i].stats));
-					songDataDisplay.appendChild(generateLink('#data-box', 'Go to Top', false));
+					songDataBox.appendChild(generateStationHeader(stations[station_id][0], stations[station_id][1], station_loop_data[i].title, station_loop_data[i].id));
+					songDataBox.appendChild(generateTable(station_loop_data[i].columns, station_loop_data[i].stats));
+					songDataBox.appendChild(generateLink('#data-box', 'Go to Top', false));
 				}
-				songDataDisplay.appendChild(document.createElement('br'));
-				songDataDisplay.appendChild(document.createElement('hr'));
+				songDataBox.appendChild(document.createElement('br'));
+				songDataBox.appendChild(document.createElement('hr'));
 			}
 		}
 	}
 	
-	function onButtonShowAllArtistsClick(e) {
-		selectButton(e.target || e.srcElement, 'show', onButtonShowAllArtistsClick);
+	function showArtists() {
 		removeCurrentDisplayData();
 		
-		songDataDisplay.appendChild(generateElementWithText('h2', 'All Artists'));
+		songDataBox.appendChild(generateElementWithText('h2', 'All Artists'));
 		var artists = radioQuery.getArtistData();
 		var stations = radioQuery.getAllStations();
 		var artist_id, station_id;
@@ -263,17 +420,16 @@
 				row_index += 1;
 			}
 		}
-		songDataDisplay.appendChild(table);
-		songDataDisplay.appendChild(generateLink('#data-box', 'Go to Top', false));
+		songDataBox.appendChild(table);
+		songDataBox.appendChild(generateLink('#data-box', 'Go to Top', false));
 	}
 	
-	function onButtonShowAllSongsClick(e) {
-		selectButton(e.target || e.srcElement, 'show', onButtonShowAllSongsClick);
+	function showSongs() {
 		removeCurrentDisplayData();
 		
 		var songs = radioQuery.getSongData();
 		var stations = radioQuery.getAllStations();
-		songDataDisplay.appendChild(generateElementWithText('h2', 'All Songs'));
+		songDataBox.appendChild(generateElementWithText('h2', 'All Songs'));
 		var table = generateTable(['Song Name', 'Artist Name', 'Station', 'Play Count'], []);
 		var table_ref = table.getElementsByTagName('table')[0];
 		table_ref.className = 'spanned-list';
@@ -323,12 +479,11 @@
 				}
 			}
 		}
-		songDataDisplay.appendChild(table);
-		songDataDisplay.appendChild(generateLink('#data-box', 'Go to Top', false));
+		songDataBox.appendChild(table);
+		songDataBox.appendChild(generateLink('#data-box', 'Go to Top', false));
 	}
 	
-	function onButtonShowPlaylistsClick(e) {
-		selectButton(e.target || e.srcElement, 'show', onButtonShowPlaylistsClick);
+	function showPlaylists() {
 		removeCurrentDisplayData();
 		
 		var playlists = radioQuery.getPlaylistsData();
@@ -336,84 +491,16 @@
 		var station_id;
 		var table;
 		var i;
-		songDataDisplay.appendChild(generateElementWithText('h2', 'Playlists'));
+		songDataBox.appendChild(generateElementWithText('h2', 'Playlists'));
 		for (station_id in playlists) {
 			if (playlists.hasOwnProperty(station_id)) {
-				songDataDisplay.appendChild(generateStationHeader(stations[station_id][0], stations[station_id][1], 'Playlist'));
+				songDataBox.appendChild(generateStationHeader(stations[station_id][0], stations[station_id][1], 'Playlist'));
 				table = generateTable(['Song Name', 'Artist Name', 'Original Time', 'Formatted Time'], playlists[station_id], station_id + '-playlist', true);
-				songDataDisplay.appendChild(table);
-				songDataDisplay.appendChild(generateLink('#data-box', 'Go to Top', false));
-				songDataDisplay.appendChild(document.createElement('br'));
+				songDataBox.appendChild(table);
+				songDataBox.appendChild(generateLink('#data-box', 'Go to Top', false));
+				songDataBox.appendChild(document.createElement('br'));
 			}
 		}
-	}
-	
-	function onRadioDataDownloaded(http_req) {
-		if (http_req.readyState === http_req.DONE) {
-			var retry = false;
-			if (http_req.status === 200) {
-				console.log('Data downloaded.');
-				// If it failed to parse, the data probably didn't download correctly
-				try {
-					radioQuery = new RadioQuery(JSON.parse(http_req.responseText));
-					showRadioDataDownloadSuccess();
-				}
-				catch (e) {
-					console.log('Data failed to parse. Reason: ', e.message);
-					retry = true;
-				}	
-			}
-			else {
-				console.log('Data failed to download.');
-				retry = true;
-			}
-			
-			if (retry) {
-				if (downloadRadioDataAttempts < MAX_DATA_DOWNLOAD_ATTEMPTS) {
-					console.log('Retrying.');
-					downloadRadioData();
-				}
-				else {
-					console.log('Max retry attempts reached.');
-					showRadioDataDownloadFailure();
-				}
-			}
-		}
-	}
-	
-	function onTextLimitStatsChange(e) {
-		if (btnShowStatistics.className === 'selected') {
-			btnShowStatistics.className = '';
-			addEventListener(btnShowStatistics, 'click', onButtonShowStatisticsClick);
-		}
-	}
-	
-	function showRadioDataDownloadSuccess() {
-		addEventListener(txtLimitStats, 'change', onTextLimitStatsChange);
-		addEventListener(btnShowStatistics, 'click', onButtonShowStatisticsClick);
-		addEventListener(btnShowAllArtists, 'click', onButtonShowAllArtistsClick);
-		addEventListener(btnShowAllSongs, 'click', onButtonShowAllSongsClick);
-		addEventListener(btnShowPlaylists, 'click', onButtonShowPlaylistsClick);
-		
-		dataBox.className = '';
-	}
-	
-	function showRadioDataDownloadFailure() {
-		btnFetchData.className = '';
-		addEventListener(btnFetchData, 'click', onButtonFetchDataClick);
-	}
-	
-	function downloadRadioData()
-	{
-		console.log('Downloading data...');
-		downloadRadioDataAttempts += 1;
-		var http_req = new XMLHttpRequest();
-		http_req.open('GET', RADIO_DATA_FILE, true);
-		http_req.overrideMimeType('application/json');
-		http_req.onreadystatechange = function() {
-			onRadioDataDownloaded(http_req);
-		};
-		http_req.send();
 	}
 	
 	function generateStationHeader(name, url, desc, id) {
@@ -433,12 +520,7 @@
 		if (new_window) {
 			link.setAttribute('target', '_blank');
 		}
-		if (typeof link.innerText !== 'string') {
-			link.innerText = text.replace(/\&/g, '&amp;');
-		}
-		else {
-			link.textContent = text.replace(/\&/g, '&amp;');
-		}
+		setInnerText(link, text.replace(/\&/g, '&amp;'));
 		return link;
 	}
 	
@@ -555,7 +637,75 @@
 				list.appendChild(sub_list);
 			}
 		}
-		songDataDisplay.appendChild(list);
+		songDataBox.appendChild(list);
+	}
+	
+	function clearChildren(element) {
+		var i;
+		var count = element.children.length;
+		for (i=0; i<count; i++) {
+			element.removeChild(element.children[0]);
+		}
+	}
+	
+	function addCSSClass(element, class_name) {
+		if (element.className === '') {
+			element.className = class_name;
+		}
+		else if (element.className.search(new RegExp('^(' + class_name + ')$|^(' + class_name + '\\s.*)$|^(.*\\s' + class_name + ')$|^(.*\\s' + class_name + '\\s.*)$')) === -1) {
+			element.className = class_name + ' ' + element.className;
+		}
+	}
+	
+	function hasCSSClass(element, class_name) {
+		if (element.className.search(new RegExp('^(' + class_name + ')$|^(' + class_name + '\\s.*)$|^(.*\\s' + class_name + ')$|^(.*\\s' + class_name + '\\s.*)$')) === -1) {
+			return false;
+		}
+		else {
+			return true;
+		}
+	}
+	
+	function removeCSSClass(element, class_name) {
+		element.className = element.className.replace(new RegExp('^(' + class_name + ')$|^(' + class_name + '\\s.*)$|^(.*\\s' + class_name + ')$|^(.*\\s' + class_name + '\\s.*)$'), replaceHiddenClassName);
+	}
+	
+	function hideElement(element) {
+		addCSSClass(element, 'hidden');
+	}
+	
+	function hideElements(element_array) {
+		var i;
+		for (i=0; i<element_array.length; i++) {
+			hideElement(element_array[i]);
+		}
+	}
+	
+	function unhideElement(element) {
+		removeCSSClass(element, 'hidden');
+	}
+	
+	function unhideElements(element_array) {
+		var i;
+		for (i=0; i<element_array.length; i++) {
+			unhideElement(element_array[i]);
+		}
+	}
+	
+	function replaceHiddenClassName(match, p1, p2, p3, p4, offset, string) {
+		if (typeof p1 !== 'undefined') {
+			return '';
+		}
+		else if (typeof p2 !== 'undefined') {
+			return string.replace(/^hidden\s/, '');
+		}
+		else if (typeof p3 !== 'undefined') {
+			return string.replace(/\shidden$/, '');
+		}
+		else if (typeof p4 !== 'undefined') {
+			return string.replace(/\shidden\s/, ' ');
+		}
+		return string;
 	}
 	
 	window.self.onload = init;
