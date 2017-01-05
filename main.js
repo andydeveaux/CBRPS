@@ -73,12 +73,22 @@
 	}
 		
 	function setInnerText(element, text) {
-		if (typeof element.innerText !== 'string') {
+		if (typeof element.innerText === 'string') {
 			element.innerText = text;
 		}
 		// Firefox < 45
 		else {
 			element.textContent = text;
+		}
+	}
+	
+	function getInnerText(element) {
+		if (typeof element.innerText === 'string') {
+			return element.innerText;
+		}
+		// Firefox < 45
+		else {
+			return element.textContent;
 		}
 	}
 	
@@ -285,18 +295,22 @@
 	
 	function onOptStatisticsClick(e) {
 		updateFilterUI();
+		removeCurrentDisplayData();
 	}
 	
 	function onOptSongsClick(e) {
 		updateFilterUI();
+		removeCurrentDisplayData();
 	}
 	
 	function onOptArtistsClick(e) {
 		updateFilterUI();
+		removeCurrentDisplayData();
 	}
 	
 	function onOptPlaylistsClick(e) {
 		updateFilterUI();
+		removeCurrentDisplayData();
 	}
 	
 	function onSelFilterLimitChange(e) {
@@ -304,17 +318,24 @@
 	}
 	
 	function onBtnFilterSubmitClick(e) {
+		var song_name_search_terms;
+		var artist_name_search_terms;
+		var sort_by;
+		var sort_order;
 		var use_cache;
-		var station_id = parseInt(selFilterStation.value);
+		
+		var station_id = parseInt(selFilterStation.value, 10);
 		if (isNaN(station_id)) {
 			station_id = 'any';
 		}
 		
-		var limit = parseInt(txtFilterLimit.value);
+		var limit = parseInt(txtFilterLimit.value, 10);
 		if (isNaN(limit)) {
 			limit = 25;
 			updateFilterUI();
 		}
+
+		removeCurrentDisplayData();
 		
 		if (optStatistics.checked) {
 			 use_cache = (currentCacheType === CacheType.STATISTICS);
@@ -322,12 +343,29 @@
 		}
 		else if (optSongs.checked) {
 			use_cache = (currentCacheType === CacheType.SONGS);
+			song_name_search_terms = splitSearchTerms(txtFilterSong.value.trim());
+			artist_name_search_terms = splitSearchTerms(txtFilterArtist.value.trim());
+			sort_by = selFilterSortBy.value;
+			sort_order = selFilterSortOrder.value;
+			
+			showSongs(station_id, song_name_search_terms, artist_name_search_terms, sort_by, sort_order, limit, use_cache);
 		}
 		else if (optArtists.checked) {
 			use_cache = (currentCacheType === CacheType.ARTISTS);
+			artist_name_search_terms = splitSearchTerms(txtFilterArtist.value.trim());
+			sort_by = selFilterSortBy.value;
+			sort_order = selFilterSortBy.value;
+			
+			showArtists(station_id, artist_name_search_terms, sort_by, sort_order, limit, use_cache);
 		}
 		else if (optPlaylists.checked) {
 			use_cache = (currentCacheType === CacheType.PLAYLISTS);
+			song_name_search_terms = splitSearchTerms(txtFilterSong.value.trim());
+			artist_name_search_terms = splitSearchTerms(txtFilterArtist.value.trim());
+			sort_by = selFilterSortBy.value;
+			sort_order = selFilterSortOrder.value;
+			
+			showPlaylists(station_id, song_name_search_terms, artist_name_search_terms, sort_by, sort_order, limit, use_cache);
 		}
 	}
 	
@@ -342,7 +380,6 @@
 	}
 	
 	function showStatistics(station_id, limit, use_cache) {
-		removeCurrentDisplayData();
 		var limit_display;
 		if (limit === 0) {
 			limit_display = 'The';
@@ -419,8 +456,6 @@
 	}
 	
 	function showArtists() {
-		removeCurrentDisplayData();
-		
 		songDataBox.appendChild(generateElementWithText('h2', 'All Artists'));
 		var artists = radioQuery.getArtistData();
 		var stations = radioQuery.getAllStations();
@@ -476,68 +511,118 @@
 		songDataBox.appendChild(generateLink('#data-box', 'Go to Top', false));
 	}
 	
-	function showSongs() {
-		removeCurrentDisplayData();
+	function showSongs(param_station_id, song_search_terms, artist_search_terms, sort_by, sort_order, limit, use_cache) {
+		var songs;
+		if (use_cache) {
+			songs = cachedData;
+		}
+		else {
+			songs = radioQuery.getSongData();
+			// Turn songs into an array for sorting
+			var songs_arr = [];
+			var id;
+			for (id in songs) {
+				if (songs.hasOwnProperty(id)) {
+					songs_arr.push([songs[id][0], songs[id][1], songs[id][2]]);
+				}
+			}
+			songs = songs_arr;
+			songs_arr = null;
+			setCache(songs, CacheType.SONGS);
+		}
 		
-		var songs = radioQuery.getSongData();
+		if (sort_by === 'playcount') {
+			if (sort_order === 'asc') {
+				songs.sort(songPlayCountSortAsc);
+			}
+			else {
+				songs.sort(songPlayCountSortDesc);
+			}
+		}
+		else if (sort_by === 'song') {
+			if (sort_order === 'asc') {
+				songs.sort(songNameSortAsc);
+			}
+			else {
+				songs.sort(songNameSortDesc);
+			}
+		}
+		else if (sort_by === 'artist') {
+			if (sort_order === 'asc') {
+				songs.sort(songArtistNameSortAsc);
+			}
+			else {
+				songs.sort(songArtistNameSortDesc);
+			}
+		}
+				
 		var stations = radioQuery.getAllStations();
 		songDataBox.appendChild(generateElementWithText('h2', 'All Songs'));
 		var table = generateTable(['Song Name', 'Artist Name', 'Station', 'Play Count'], []);
 		var table_ref = table.getElementsByTagName('table')[0];
 		table_ref.className = 'spanned-list';
 		var song_id, station_id;
-		var row, record, pending_rows;
+		var row, record, row_group;
+		var pending_rows = [];
+		var first_row;
 		var song_index = 1;
 		var i;
-		var total_play_count;
-		for (song_id in songs) {
-			if (songs.hasOwnProperty(song_id)) {
-				total_play_count = 0;
-				pending_rows = [];
-				record = songs[song_id];
-				for (station_id in songs[song_id][2]) {
-					if (record[2].hasOwnProperty(station_id)) {
-						if (record[2][station_id] <= 0) {
-							continue;
-						}
-						
-						// First row for this song
-						if (total_play_count <= 0) {
-							row = generateTableRow([song_index, record[0], record[1], stations[station_id][0], record[2][station_id]]);
-							row.children[1].setAttribute('style', 'max-width: 200px');
-							row.children[2].setAttribute('style', 'max-width: 200px');
-							row.className = 'row-start';
-						}
-						else {
-							row = document.createElement('tr');
-							row.appendChild(generateElementWithText('td', null, {colspan: 3}));
-							row.appendChild(generateElementWithText('td', stations[station_id][0], {className: 'border-me'}));
-							row.appendChild(generateElementWithText('td', record[2][station_id], {className: 'border-me'}));
-						}
-						total_play_count += record[2][station_id];
-						pending_rows.push(row);
-					}
-				}
-				// Total play count row
-				row = document.createElement('tr');
-				row.appendChild(generateElementWithText('td', null, {colspan: 3}));
-				row.appendChild(generateElementWithText('td', null, {className: 'border-me', style: 'border-right: 0'}));
-				row.appendChild(generateElementWithText('td', 'Total: ' + total_play_count, {style: 'font-weight: 700'}));
-				pending_rows.push(row);
+		for (i=0; i<songs.length; i++) {
+			record = songs[i];
+			
+			// -- Filter stuff --				
+			if ( (station_id !== 'any' && record[2][param_station_id] <= 0) ||		// Only show the song if it has ever been played on the filter station
+				 (!isInSearch(record[0], song_search_terms) || !isInSearch(record[1], artist_search_terms)) ) 		// Song and artist search terms
+			{
+				continue;
+			}
+			
+			if (limit !== 0 && song_index > limit) {
+				break;
+			}
 				
-				song_index += 1;
-				for (i=0; i<pending_rows.length; i++) {
-					table_ref.tBodies[0].appendChild(pending_rows[i]);
+			first_row = true;
+			for (station_id in record[2]) {
+				if (record[2].hasOwnProperty(station_id) && station_id !== 'total') {
+					if (record[2][station_id] <= 0) {
+						continue;
+					}
+
+					if (first_row) {
+						row = generateTableRow([song_index, record[0], record[1], stations[station_id][0], record[2][station_id]]);
+						row.children[1].setAttribute('style', 'max-width: 200px');
+						row.children[2].setAttribute('style', 'max-width: 200px');
+						row.className = 'row-start';
+						first_row = false;
+						song_index += 1;
+					}
+					else {
+						row = document.createElement('tr');
+						row.appendChild(generateElementWithText('td', null, {colspan: 3}));
+						row.appendChild(generateElementWithText('td', stations[station_id][0], {className: 'border-me'}));
+						row.appendChild(generateElementWithText('td', record[2][station_id], {className: 'border-me'}));
+					}
+					pending_rows.push(row);
 				}
 			}
+			// Total play count row
+			row = document.createElement('tr');
+			row.appendChild(generateElementWithText('td', null, {colspan: 3}));
+			row.appendChild(generateElementWithText('td', null, {className: 'border-me', style: 'border-right: 0'}));
+			row.appendChild(generateElementWithText('td', 'Total: ' + record[2].total, {style: 'font-weight: 700'}));
+			pending_rows.push(row);
 		}
+		// Dump all of the pending rows to the table
+		var i;
+		for (i=0; i<pending_rows.length; i++) {
+			table_ref.tBodies[0].appendChild(pending_rows[i]);
+		}
+		songDataBox.appendChild(generateElementWithText('h3', (song_index - 1) + ' Results'));
 		songDataBox.appendChild(table);
 		songDataBox.appendChild(generateLink('#data-box', 'Go to Top', false));
 	}
 	
 	function showPlaylists() {
-		removeCurrentDisplayData();
-		
 		var playlists = radioQuery.getPlaylistsData();
 		var stations = radioQuery.getAllStations();
 		var station_id;
@@ -778,9 +863,156 @@
 		}
 	}
 	
+	// Really basic search function
+	function isInSearch(str, terms) {
+		if (terms.length === 0) {
+			return true;
+		}
+		
+		var i;
+		var lc_str = str.toLowerCase();			// Easier comparison
+		var term;
+		for (i=0; i<terms.length; i++) {
+			term = terms[i].toLowerCase().trim();
+			if (lc_str.indexOf(term) > -1) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	// Splits search terms into an array
+	// Terms surrounded with quotes are treated as one unit
+	function splitSearchTerms(search_str) {
+		var terms = [];
+		var inside_quotes = false;
+		// Traverse through each character
+		var last_index = search_str.length - 1;
+		var start_index = 0;			// Index of where the parser began a new term
+		var i, c, term;
+		for (i=0; i<search_str.length; i++) {
+			c = search_str[i];
+			if (c === '"') {
+				if (inside_quotes) {
+					term = search_str.substring(start_index, i);
+				}
+				else {
+					term = search_str.substring(start_index, i).trim();
+				}
+				
+				if (term !== '') {
+					terms.push(term);
+				}
+				start_index = i + 1;
+				inside_quotes = !inside_quotes;
+			}
+			else if (c === ' ' && !inside_quotes) {
+				term = search_str.substring(start_index, i).trim();
+				if (term !== '') {
+					terms.push(term);
+				}
+				start_index = i + 1;
+			}
+			// At the end of the string
+			else if (i == last_index) {
+				// If we're inside quotes and the last character isn't a closing quote, then go back to parse the rest as unquoted
+				if (inside_quotes) {
+					inside_quotes = false;
+					i = start_index - 1;
+					continue;
+				}
+				
+				term = search_str.substring(start_index, i+1).trim();
+				if (term !== '') {
+					terms.push(term);
+				}
+			}
+		}
+		return terms;
+	}
+	
 	function setCache(data, type) {
 		cachedData = data;
 		currentCacheType = type;
+	}
+	
+	// -- Sort Functions --
+	function songPlayCountSortAsc(a, b) {
+		var count1 = a[2].total;
+		var count2 = b[2].total;
+		if (count1 < count2) {
+			return -1;
+		}
+		else if (count1 > count2) {
+			return 1;
+		}
+		
+		return songNameSortAsc(a, b);
+	}
+	
+	function songPlayCountSortDesc(a, b) {
+		var count1 = a[2].total;
+		var count2 = b[2].total;
+		if (count1 > count2) {
+			return -1;
+		}
+		else if (count1 < count2) {
+			return 1;
+		}
+		
+		return songNameSortAsc(a, b);
+	}
+	
+	function songNameSortAsc(a, b) {
+		var name1 = a[0].toLowerCase();
+		var name2 = b[0].toLowerCase();
+		if (name1 < name2) {
+			return -1;
+		}
+		else if (name1 > name2) {
+			return 1;
+		}
+		
+		return songArtistNameSortAsc(a, b);		// Equal
+	}
+	
+	function songNameSortDesc(a, b) {
+		var name1 = a[0].toLowerCase();
+		var name2 = b[0].toLowerCase();
+		if (name1 > name2) {
+			return -1;
+		}
+		else if (name1 < name2) {
+			return 1;
+		}
+		
+		return songArtistNameSortDesc(a, b);		// Equal
+	}
+	
+	function songArtistNameSortAsc(a, b) {
+		var name1 = a[1].toLowerCase();
+		var name2 = b[1].toLowerCase();
+		if (name1 < name2) {
+			return -1;
+		}
+		else if (name1 > name2) {
+			return 1;
+		}
+		
+		return 0;
+	}
+	
+	function songArtistNameSortDesc(a, b) {
+		var name1 = a[1].toLowerCase();
+		var name2 = b[1].toLowerCase();
+		if (name1 > name2) {
+			return -1;
+		}
+		else if (name1 < name2) {
+			return 1;
+		}
+		
+		return 0;
 	}
 	
 	window.self.onload = init;

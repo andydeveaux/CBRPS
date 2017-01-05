@@ -35,17 +35,21 @@
 	
 	var getSongData = function() {
 		var songs = fetchAllSongs(this);
-		// Get how many times it was played by each station
+		// Get how many times it was played by each station, plus the total
+		var song_id;
 		var playlists_table = this.radioData.playlists;
-		var station, playlist, i;
-		for (station in playlists_table) {
-			if (playlists_table.hasOwnProperty(station)) {
-				playlist = playlists_table[station];
+		var station_id, playlist, i;
+		for (station_id in playlists_table) {
+			if (playlists_table.hasOwnProperty(station_id)) {
+				playlist = playlists_table[station_id];
 				for (i=0; i<playlist.length; i++) {
-					songs[playlist[i][PLAYLISTS_COL_SONG_ID]][2][station] += 1;
+					song_id = playlist[i][PLAYLISTS_COL_SONG_ID];
+					songs[song_id][2][station_id] += 1;
+					songs[song_id][2].total += 1;
 				}
 			}
 		}
+		
 		debug(['Songs:', songs]);
 		return songs;
 	};
@@ -276,7 +280,7 @@
 		var artists = rq.radioData.artists;
 		var stations = rq.radioData.stations;
 		var id;
-		var song_station_count = {};
+		var song_station_count = {total: 0};
 		for (id in stations) {
 			if (stations.hasOwnProperty(id)) {
 				song_station_count[id] = 0;
