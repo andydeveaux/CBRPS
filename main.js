@@ -393,7 +393,6 @@
 			stats = cachedData;
 		}
 		else {
-			console.log(radioQuery);
 			stats = radioQuery.getStatisticsData();
 			setCache(stats, CacheType.STATISTICS);
 		}
@@ -618,7 +617,7 @@
 		for (i=0; i<songs.length; i++) {
 			record = songs[i];
 			
-			// -- Filter stuff --				
+			// -- Filter stuff --	
 			if ( (param_station_id !== 'any' && record[2][param_station_id] <= 0) ||		// Only show the song if it has ever been played on the filter station
 				 (!isInSearch(record[0], song_search_terms) || !isInSearch(record[1], artist_search_terms)) ) 		// Song and artist search terms
 			{
@@ -670,17 +669,77 @@
 		songDataBox.appendChild(generateLink('#data-box', 'Go to Top', false));
 	}
 	
-	function showPlaylists() {
-		var playlists = radioQuery.getPlaylistsData();
+	function showPlaylists(param_station_id, song_search_terms, artist_search_terms, sort_by, sort_order, limit, use_cache) {
+		var playlists;
+		if (use_cache) {
+			playlists = cachedData;
+		}
+		else {
+			playlists = radioQuery.getPlaylistsData();
+			setCache(playlists, CacheType.PLAYLISTS);
+		}
+				
 		var stations = radioQuery.getAllStations();
 		var station_id;
+		var data, playlist;
 		var table;
 		var i;
 		songDataBox.appendChild(generateElementWithText('h2', 'Playlists'));
 		for (station_id in playlists) {
 			if (playlists.hasOwnProperty(station_id)) {
+				playlist = playlists[station_id];
+				// -- Filter stuff --				
+				// Only show if the list if it isn't filtered
+				if (param_station_id !== 'any' && param_station_id.toString() !== station_id) {
+					console.log(param_station_id, station_id);
+					continue;
+				}
+				
+				// Filter by search terms
+				data = [];
+				if (song_search_terms.length === 0 && artist_search_terms.length === 0) {
+					data = playlist;
+				}
+				else {
+					for (i=0; i<playlist.length; i++) {
+						if (!isInSearch(playlist[i][0], song_search_terms) || !isInSearch(playlist[i][1], artist_search_terms)) {
+							continue;
+						}
+						data.push(playlist[i]);
+					}
+				}
+				
+				if (sort_by === 'song') {
+					if (sort_order === 'asc') {
+						data.sort(songNameSortAsc);
+					}
+					else {
+						data.sort(songNameSortDesc);
+					}
+				}
+				else if (sort_by === 'artist') {
+					if (sort_order === 'asc') {
+						data.sort(songArtistNameSortAsc);
+					}
+					else {
+						data.sort(songArtistNameSortDesc);
+					}
+				}
+				else if (sort_by === 'date') {
+					if (sort_order === 'asc') {
+						data.sort(playDateSortAsc);
+					}
+					else {
+						data.sort(playDateSortDesc);
+					}
+				}
+				
+				if (limit > 0) {
+					data = data.slice(0, limit);
+				}
+				
 				songDataBox.appendChild(generateStationHeader(stations[station_id][0], stations[station_id][1], 'Playlist'));
-				table = generateTable(['Song Name', 'Artist Name', 'Original Time', 'Formatted Time'], playlists[station_id], station_id + '-playlist', true);
+				table = generateTable(['Song Name', 'Artist Name', 'Original Time', 'Formatted Time'], data, station_id + '-playlist', true);
 				songDataBox.appendChild(table);
 				songDataBox.appendChild(generateLink('#data-box', 'Go to Top', false));
 				songDataBox.appendChild(document.createElement('br'));
