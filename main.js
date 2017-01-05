@@ -354,7 +354,7 @@
 			use_cache = (currentCacheType === CacheType.ARTISTS);
 			artist_name_search_terms = splitSearchTerms(txtFilterArtist.value.trim());
 			sort_by = selFilterSortBy.value;
-			sort_order = selFilterSortBy.value;
+			sort_order = selFilterSortOrder.value;
 			
 			showArtists(station_id, artist_name_search_terms, sort_by, sort_order, limit, use_cache);
 		}
@@ -455,58 +455,106 @@
 		}
 	}
 	
-	function showArtists() {
+	function showArtists(param_station_id, artist_search_terms, sort_by, sort_order, limit, use_cache) {
 		songDataBox.appendChild(generateElementWithText('h2', 'All Artists'));
-		var artists = radioQuery.getArtistData();
+		var artists;
+		if (use_cache) {
+			artists = cachedData;
+		}
+		else {
+			artists = radioQuery.getArtistData();
+			// Convert the data to an array so we can sort it
+			var artists_arr = [];
+			var id;
+			for (id in artists) {
+				if (artists.hasOwnProperty(id)) {
+					artists_arr.push([artists[id][0], artists[id][1]]);
+				}
+			}
+			artists = artists_arr;
+			artists_arr = null;
+			setCache(artists, CacheType.ARTISTS);
+		}
+		
+		if (sort_by === 'playcount') {
+			if (sort_order === 'asc') {
+				artists.sort(artistPlayCountSortAsc);
+			}
+			else {
+				artists.sort(artistPlayCountSortDesc);
+			}
+		}
+		else if (sort_by === 'artist') {
+			if (sort_order === 'asc') {
+				artists.sort(artistNameSortAsc);
+			}
+			else {
+				artists.sort(artistNameSortDesc);
+			}
+		}
+		
 		var stations = radioQuery.getAllStations();
-		var artist_id, station_id;
-		var record, total_play_count;
-		var row_index = 1, i;
+		var station_id, record;
+		var artist_index = 1;
 		var row;
-		var pending_rows;					// Generated rows that need to be appended at the end of the inner loop
+		var pending_rows = [];					// Generated rows that need to be appended at the end of the inner loop
+		var first_row;
+		var i;
 		var table = generateTable(['Artist Name', 'Station', 'Play Count'], []);		// Generate an empty table because we need to do row spanning with certain rows
 		var table_ref = table.getElementsByTagName('table')[0];
 		table_ref.className = 'spanned-list';
-		for (artist_id in artists) {
-			if (artists.hasOwnProperty(artist_id)) {
-				record = artists[artist_id];
-				pending_rows = [];
-				total_play_count = 0;
-				for (station_id in artists[artist_id][1]) {
-					if (record[1].hasOwnProperty(station_id)) {
-						if (record[1][station_id] <= 0) {
-							continue;
-						}
-						
-						// First row for this artist
-						if (total_play_count === 0) {
-							row = generateTableRow([row_index, record[0], stations[station_id][0], record[1][station_id]]);
-							row.children[1].setAttribute('style', 'max-width: 150px');
-							row.className = 'row-start';
-						}
-						else {
-							row = document.createElement('tr');
-							row.appendChild(generateElementWithText('td', null, {colspan: 2}));
-							row.appendChild(generateElementWithText('td', stations[station_id][0], {className: 'border-me'}));
-							row.appendChild(generateElementWithText('td', record[1][station_id], {className: 'border-me', style: 'text-align: center'}));
-						}
-						total_play_count += record[1][station_id];
-						pending_rows.push(row);
-					}
-				}
-				
-				row = document.createElement('tr');
-				row.appendChild(generateElementWithText('td', null, {colspan: 2}));
-				row.appendChild(generateElementWithText('td', null, {className: 'border-me', style: 'border-right: 0'}));
-				row.appendChild(generateElementWithText('td', 'Total: ' + total_play_count, {style: 'font-weight: 700'}));
-				pending_rows.push(row);
-				
-				for (i=0; i<pending_rows.length; i++) {
-					table_ref.tBodies[0].appendChild(pending_rows[i]);
-				}
-				row_index += 1;
+		console.log(artists);
+		for (i=0; i<artists.length; i++) {
+			record = artists[i];
+			
+			// -- Filter stuff --				
+			if ( (param_station_id !== 'any' && record[1][param_station_id] <= 0) ||		// Only show the song if it has ever been played on the filter station
+				 !isInSearch(record[0], artist_search_terms) ) 		// Song and artist search terms
+			{
+				continue;
 			}
+			
+			if (limit > 0 && artist_index > limit) {
+				break;
+			}
+			
+			first_row = true;
+			for (station_id in record[1]) {
+				if (record[1].hasOwnProperty(station_id) && station_id !== 'total') {
+					if (record[1][station_id] <= 0) {
+						continue;
+					}
+					// First row for this artist
+					if (first_row) {
+						row = generateTableRow([artist_index, record[0], stations[station_id][0], record[1][station_id]]);
+						row.children[1].setAttribute('style', 'max-width: 150px');
+						row.className = 'row-start';
+						artist_index += 1;
+						first_row = false;
+					}
+					else {
+						row = document.createElement('tr');
+						row.appendChild(generateElementWithText('td', null, {colspan: 2}));
+						row.appendChild(generateElementWithText('td', stations[station_id][0], {className: 'border-me'}));
+						row.appendChild(generateElementWithText('td', record[1][station_id], {className: 'border-me', style: 'text-align: center'}));
+					}
+					pending_rows.push(row);
+				}
+			}
+			
+			// Total play count row
+			row = document.createElement('tr');
+			row.appendChild(generateElementWithText('td', null, {colspan: 2}));
+			row.appendChild(generateElementWithText('td', null, {className: 'border-me', style: 'border-right: 0'}));
+			row.appendChild(generateElementWithText('td', 'Total: ' + record[1].total, {style: 'font-weight: 700'}));
+			pending_rows.push(row);
 		}
+		
+		// Dump all of the pending rows to the table
+		for (i=0; i<pending_rows.length; i++) {
+			table_ref.tBodies[0].appendChild(pending_rows[i]);
+		}
+		songDataBox.appendChild(generateElementWithText('h3', (artist_index - 1) + ' Results'));
 		songDataBox.appendChild(table);
 		songDataBox.appendChild(generateLink('#data-box', 'Go to Top', false));
 	}
@@ -571,13 +619,13 @@
 			record = songs[i];
 			
 			// -- Filter stuff --				
-			if ( (station_id !== 'any' && record[2][param_station_id] <= 0) ||		// Only show the song if it has ever been played on the filter station
+			if ( (param_station_id !== 'any' && record[2][param_station_id] <= 0) ||		// Only show the song if it has ever been played on the filter station
 				 (!isInSearch(record[0], song_search_terms) || !isInSearch(record[1], artist_search_terms)) ) 		// Song and artist search terms
 			{
 				continue;
 			}
 			
-			if (limit !== 0 && song_index > limit) {
+			if (limit > 0 && song_index > limit) {
 				break;
 			}
 				
@@ -937,6 +985,54 @@
 	}
 	
 	// -- Sort Functions --
+	function artistPlayCountSortAsc(a, b) {
+		var count1 = a[1].total;
+		var count2 = b[1].total;
+		if (count1 < count2) {
+			return -1;
+		}
+		else if (count1 > count2) {
+			return 1;
+		}
+		return artistNameSortAsc(a, b);
+	}
+	
+	function artistPlayCountSortDesc(a, b) {
+		var count1 = a[1].total;
+		var count2 = b[1].total;
+		if (count1 > count2) {
+			return -1;
+		}
+		else if (count1 < count2) {
+			return 1;
+		}
+		return artistNameSortDesc(a, b);
+	}
+	
+	function artistNameSortAsc(a, b) {
+		var name1 = a[0].toLowerCase();
+		var name2 = b[0].toLowerCase();
+		if (name1 < name2) {
+			return -1;
+		}
+		else if (name1 > name2) {
+			return 1;
+		}
+		return 0;	
+	} 
+	
+	function artistNameSortDesc(a, b) {
+		var name1 = a[0].toLowerCase();
+		var name2 = b[0].toLowerCase();
+		if (name1 > name2) {
+			return -1;
+		}
+		else if (name1 < name2) {
+			return 1;
+		}
+		return 0;	
+	}
+	
 	function songPlayCountSortAsc(a, b) {
 		var count1 = a[2].total;
 		var count2 = b[2].total;
