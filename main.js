@@ -8,6 +8,14 @@
 	var MAX_DATA_DOWNLOAD_ATTEMPTS = 2;
 	var RADIO_DATA_FILE = 'playlists_data.json';
 	
+	var CacheType = {
+		NONE: 0,
+		STATISTICS: 1,
+		SONGS: 2,
+		ARTISTS: 3,
+		PLAYLISTS: 4
+	};
+	
 	var btnFetchData;
 	var lblFetchStatus;
 	var dataDownloadBox;
@@ -39,6 +47,7 @@
 	
 	var radioQuery;					// Object for holding all of the radio data
 	var cachedData;					// Full reults from one of the RadioQuery functions, cached for faster filtering
+	var currentCacheType;			// Identify which data the cache is holding
 	var downloadRadioDataAttempts;
 	var currentSelectedOption;
 	
@@ -162,6 +171,7 @@
 		addEventListener(btnFilterSubmit, 'click', onBtnFilterSubmitClick);
 		addEventListener(btnFilterReset, 'click', onBtnFilterResetClick);
 		
+		currentCacheType = CacheType.NONE;
 		updateFilterUI();
 	}
 	
@@ -174,13 +184,8 @@
 	function updateFilterUI() {
 		if (optStatistics.checked) {
 			selectOption(optStatistics, 'data_choice', onOptStatisticsClick);
-			hideElements([filterBoxSong, filterBoxArtist]);
-			unhideElements([filterBoxStation, filterBoxSortBy, filterBoxSortOrder, filterBoxLimit]);
-			
-			clearChildren(selFilterSortBy);
-			selFilterSortBy.appendChild(generateElementWithText('option', 'Play Count', {value: 'playcount'}));
-			selFilterSortBy.appendChild(generateElementWithText('option', 'Song', {value: 'song'}));
-			selFilterSortBy.appendChild(generateElementWithText('option', 'Artist', {value: 'artist'}));
+			hideElements([filterBoxSong, filterBoxArtist, filterBoxSortBy, filterBoxSortOrder]);
+			unhideElements([filterBoxStation, filterBoxLimit]);
 		}
 		else if (optSongs.checked) {
 			selectOption(optSongs, 'data_choice', onOptSongsClick);
@@ -299,7 +304,31 @@
 	}
 	
 	function onBtnFilterSubmitClick(e) {
+		var use_cache;
+		var station_id = parseInt(selFilterStation.value);
+		if (isNaN(station_id)) {
+			station_id = 'any';
+		}
 		
+		var limit = parseInt(txtFilterLimit.value);
+		if (isNaN(limit)) {
+			limit = 25;
+			updateFilterUI();
+		}
+		
+		if (optStatistics.checked) {
+			 use_cache = (currentCacheType === CacheType.STATISTICS);
+			showStatistics(station_id, limit, use_cache);
+		}
+		else if (optSongs.checked) {
+			use_cache = (currentCacheType === CacheType.SONGS);
+		}
+		else if (optArtists.checked) {
+			use_cache = (currentCacheType === CacheType.ARTISTS);
+		}
+		else if (optPlaylists.checked) {
+			use_cache = (currentCacheType === CacheType.PLAYLISTS);
+		}
 	}
 	
 	function onBtnFilterResetClick(e) {
@@ -312,46 +341,69 @@
 		selFilterLimit.value = '25';
 	}
 	
-	function showStatistics() {
+	function showStatistics(station_id, limit, use_cache) {
 		removeCurrentDisplayData();
-		
-		var limit = 20;
-		var limit_display = 'The ' + limit;
+		var limit_display;
+		if (limit === 0) {
+			limit_display = 'The';
+		}
+		else {
+			limit_display = 'The ' + limit;
+		}
 
-		var stats = radioQuery.getStats(limit);
+		var stats;
+		if (use_cache) {
+			stats = cachedData;
+		}
+		else {
+			console.log(radioQuery);
+			stats = radioQuery.getStatisticsData();
+			setCache(stats, CacheType.STATISTICS);
+		}
 		
-		generateStatisticsLinkList();
+		generateStatisticsLinkList(station_id);
 		
 		var SONG_COLUMNS = ['Song Name', 'Artist Name', 'Play Count'];
-		var ARTIST_COLUMNS = ['Artist Name', 'Play Count'];		
-		var LOOP_DATA = [
-			{title: limit_display + ' Most Played Songs', columns: SONG_COLUMNS, id: 'most-played-songs', stats: stats.mostPlayedSongs},
-			{title: limit_display + ' Least Played Songs', columns: SONG_COLUMNS, id: 'least-played-songs', stats: stats.leastPlayedSongs},
-			{title: limit_display + ' Most Played Artists', columns: ARTIST_COLUMNS, id: 'most-played-artists', stats: stats.mostPlayedArtists},
-			{title: limit_display + ' Least Played Artists', columns: ARTIST_COLUMNS, id: 'least-played-artists', stats: stats.leastPlayedArtists},
-			{title: limit_display + ' Most Played Christmas Songs', columns: SONG_COLUMNS, id: 'most-played-xmas-songs', stats: stats.mostPlayedChristmasSongs},
-			{title: limit_display + ' Least Played Christmas Songs', columns: SONG_COLUMNS, id: 'least-played-xmas-songs', stats: stats.leastPlayedChristmasSongs}
-		];
-		var i;
-		for (i=0; i<LOOP_DATA.length; i++) {
-			songDataBox.appendChild(generateElementWithText('h2', LOOP_DATA[i].title, {id: LOOP_DATA[i].id}));
-			songDataBox.appendChild(generateTable(LOOP_DATA[i].columns, LOOP_DATA[i].stats));
-			songDataBox.appendChild(generateLink('#data-box', 'Go to Top', false));
+		var ARTIST_COLUMNS = ['Artist Name', 'Play Count'];
+		var LOOP_DATA;
+		var stations;
+		if (station_id === 'any') {
+			// Loop through all stations
+			stations = radioQuery.getAllStations();
+			LOOP_DATA = [
+				{title: limit_display + ' Most Played Songs', columns: SONG_COLUMNS, id: 'most-played-songs', stats: limitArray(stats.mostPlayedSongs, limit) },
+				{title: limit_display + ' Least Played Songs', columns: SONG_COLUMNS, id: 'least-played-songs', stats: limitArray(stats.leastPlayedSongs, limit) },
+				{title: limit_display + ' Most Played Artists', columns: ARTIST_COLUMNS, id: 'most-played-artists', stats: limitArray(stats.mostPlayedArtists, limit) },
+				{title: limit_display + ' Least Played Artists', columns: ARTIST_COLUMNS, id: 'least-played-artists', stats: limitArray(stats.leastPlayedArtists, limit) },
+				{title: limit_display + ' Most Played Christmas Songs', columns: SONG_COLUMNS, id: 'most-played-xmas-songs', stats: limitArray(stats.mostPlayedChristmasSongs, limit) },
+				{title: limit_display + ' Least Played Christmas Songs', columns: SONG_COLUMNS, id: 'least-played-xmas-songs', stats: limitArray(stats.leastPlayedChristmasSongs, limit) }
+			];
+			
+			var i;
+			for (i=0; i<LOOP_DATA.length; i++) {
+				songDataBox.appendChild(generateElementWithText('h2', LOOP_DATA[i].title, {id: LOOP_DATA[i].id}));
+				songDataBox.appendChild(generateTable(LOOP_DATA[i].columns, LOOP_DATA[i].stats));
+				songDataBox.appendChild(generateLink('#data-box', 'Go to Top', false));
+			}
+			songDataBox.appendChild(document.createElement('br'));
+			songDataBox.appendChild(document.createElement('hr'));
 		}
-		songDataBox.appendChild(document.createElement('br'));
-		songDataBox.appendChild(document.createElement('hr'));
-		
-		var stations = radioQuery.getAllStations();
-		var station_loop_data, station_id;
-		for (station_id in stats.stationsMostPlayedSongs) {
+		else {
+			// Only loop through one station for the filter
+			stations = {};
+			stations[station_id] = radioQuery.getStation(station_id);
+			console.log(stations);
+		}
+		var station_loop_data;
+		for (station_id in stations) {
 			if (stats.stationsMostPlayedSongs.hasOwnProperty(station_id)) {
 				station_loop_data = [
-					{title: limit_display + ' Most Played Songs', columns: SONG_COLUMNS, id: station_id + '-most-played-songs', stats: stats.stationsMostPlayedSongs[station_id]},
-					{title: limit_display + ' Least Played Songs', columns: SONG_COLUMNS, id: station_id + '-least-played-songs', stats: stats.stationsLeastPlayedSongs[station_id]},
-					{title: limit_display + ' Most Played Artists', columns: ARTIST_COLUMNS, id: station_id + '-most-played-artists', stats: stats.stationsMostPlayedArtists[station_id]},
-					{title: limit_display + ' Least Played Artists', columns: ARTIST_COLUMNS, id: station_id + '-least-played-artists', stats: stats.stationsLeastPlayedArtists[station_id]},
-					{title: limit_display + ' Most Played Christmas Songs', columns: SONG_COLUMNS, id: station_id + '-most-played-xmas-songs', stats: stats.stationsMostPlayedChristmasSongs[station_id]},
-					{title: limit_display + ' Least Played Christmas Songs', columns: SONG_COLUMNS, id: station_id + '-least-played-xmas-songs', stats: stats.stationsLeastPlayedChristmasSongs[station_id]}
+					{title: limit_display + ' Most Played Songs', columns: SONG_COLUMNS, id: station_id + '-most-played-songs', stats: limitArray(stats.stationsMostPlayedSongs[station_id], limit) },
+					{title: limit_display + ' Least Played Songs', columns: SONG_COLUMNS, id: station_id + '-least-played-songs', stats: limitArray(stats.stationsLeastPlayedSongs[station_id], limit) },
+					{title: limit_display + ' Most Played Artists', columns: ARTIST_COLUMNS, id: station_id + '-most-played-artists', stats: limitArray(stats.stationsMostPlayedArtists[station_id], limit) },
+					{title: limit_display + ' Least Played Artists', columns: ARTIST_COLUMNS, id: station_id + '-least-played-artists', stats: limitArray(stats.stationsLeastPlayedArtists[station_id], limit) },
+					{title: limit_display + ' Most Played Christmas Songs', columns: SONG_COLUMNS, id: station_id + '-most-played-xmas-songs', stats: limitArray(stats.stationsMostPlayedChristmasSongs[station_id], limit) },
+					{title: limit_display + ' Least Played Christmas Songs', columns: SONG_COLUMNS, id: station_id + '-least-played-xmas-songs', stats: limitArray(stats.stationsLeastPlayedChristmasSongs[station_id], limit) }
 				];
 				
 				songDataBox.appendChild(generateElementWithText('h2', stations[station_id][0]));
@@ -599,24 +651,32 @@
 		return element;
 	}
 	
-	function generateStatisticsLinkList() {
-		var link_loop_data = [
-			{href: '#most-played-songs', text: 'Most Played Songs'},
-			{href: '#least-played-songs', text: 'Least Played Songs'},
-			{href: '#most-played-artists', text: 'Most Played Artists'},
-			{href: '#least-played-artists', text: 'Least Played Artists'},
-			{href: '#most-played-xmas-songs', text: 'Most Played Christmas Songs'},
-			{href: '#least-played-xmas-songs', text: 'Least Played Christmas Songs'}
-		];
-		
+	function generateStatisticsLinkList(station_id) {
+		var stations;
 		var list = document.createElement('ul');
-		list.className = 'linklist';
-		var i;
-		for (i=0; i<link_loop_data.length; i++) {
-			list.appendChild(generateListItem(generateLink(link_loop_data[i].href, link_loop_data[i].text, false)));
+		if (station_id === 'any') {
+			stations = radioQuery.getAllStations();
+			
+			var link_loop_data = [
+				{href: '#most-played-songs', text: 'Most Played Songs'},
+				{href: '#least-played-songs', text: 'Least Played Songs'},
+				{href: '#most-played-artists', text: 'Most Played Artists'},
+				{href: '#least-played-artists', text: 'Least Played Artists'},
+				{href: '#most-played-xmas-songs', text: 'Most Played Christmas Songs'},
+				{href: '#least-played-xmas-songs', text: 'Least Played Christmas Songs'}
+			];
+
+			list.className = 'linklist';
+			var i;
+			for (i=0; i<link_loop_data.length; i++) {
+				list.appendChild(generateListItem(generateLink(link_loop_data[i].href, link_loop_data[i].text, false)));
+			}
+		}
+		else {
+			stations = {};
+			stations[station_id] = radioQuery.getStation(station_id);
 		}
 		
-		var stations = radioQuery.getAllStations();
 		link_loop_data = [
 			{href: '-most-played-songs', text: 'Most Played Songs'},
 			{href: '-least-played-songs', text: 'Least Played Songs'},
@@ -638,6 +698,7 @@
 			}
 		}
 		songDataBox.appendChild(list);
+		songDataBox.appendChild(document.createElement('br'));
 	}
 	
 	function clearChildren(element) {
@@ -706,6 +767,20 @@
 			return string.replace(/\shidden\s/, ' ');
 		}
 		return string;
+	}
+	
+	function limitArray(arr, limit) {
+		if (limit === 0) {
+			return arr;
+		}
+		else {
+			return arr.slice(0, limit);
+		}
+	}
+	
+	function setCache(data, type) {
+		cachedData = data;
+		currentCacheType = type;
 	}
 	
 	window.self.onload = init;
