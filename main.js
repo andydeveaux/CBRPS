@@ -267,6 +267,7 @@
 	function onRadioDataDownloaded(http_req) {
 		if (http_req.readyState === http_req.DONE) {
 			var retry = false;
+			// If testing locally on Chrome with the --allow-file-access-from-files flag, check for status code 0
 			if (http_req.status === 200) {
 				console.log('Data downloaded.');
 				// If it failed to parse, the data probably didn't download correctly
@@ -280,7 +281,7 @@
 				}
 			}
 			else {
-				console.log('Data failed to download.');
+				console.log('Data failed to download. Status: ', http_req.status);
 				retry = true;
 			}
 			

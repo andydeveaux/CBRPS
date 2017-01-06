@@ -52,6 +52,7 @@ table
 {
 	background-color: white;
 	max-width: 1000px;
+	width: 65%;
 	min-height: 100%;
 	margin-left: auto;
 	margin-right: auto;
@@ -113,6 +114,7 @@ nav.links a
 .playlist-container
 {
 	width: 90%;
+	border: 1px solid black;
 	max-height: 520px;
 	overflow-y: auto;
 	margin-bottom: 40px;
@@ -219,4 +221,26 @@ tr.row-start td, td.border-me
 {
 	visibility: visible;
 	top: -85px;
+}
+
+@media screen and (max-width: 768px)
+{
+	.container
+	{
+		width: 90%;
+	}
+}
+
+@media (max-width: 600px)
+{
+	.container
+	{
+		width: 100%;
+		padding: 2px 2px 100px 2px;
+	}
+	
+	.playlist-container
+	{
+		width: 98%;
+	}
 }
