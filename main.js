@@ -106,6 +106,15 @@
 		}
 	}
 	
+	// IE8 doesn't support String.prototype.trim()
+	function addStringPrototypeTrim() {
+		if (typeof String.prototype.trim !== 'function') {
+			String.prototype.trim = function() {
+				return this.replace(/^\s+|\s+$/g, '');
+			}
+		}
+	}
+	
 	function init() {
 		var getElement = function(id) {
 			return document.getElementById(id);
@@ -154,6 +163,8 @@
 		addPrototypeConstants(XMLHttpRequest, 'HEADERS_RECIEVED', 2);
 		addPrototypeConstants(XMLHttpRequest, 'LOADING', 3);
 		addPrototypeConstants(XMLHttpRequest, 'DONE', 4);
+		
+		addStringPrototypeTrim();		// IE8
 		
 		addEventListener(btnFetchData, 'click', onButtonFetchDataClick);
 	}
