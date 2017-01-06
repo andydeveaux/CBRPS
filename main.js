@@ -26,6 +26,7 @@
 	var optPlaylists;
 	
 	// Filter
+	var lblFilterStatus;
 	var filterBoxStation;
 	var filterBoxSong;
 	var filterBoxArtist;
@@ -54,6 +55,7 @@
 	var currentCacheType;			// Identify which data the cache is holding
 	var downloadRadioDataAttempts;
 	var currentSelectedOption;
+	var filterStatusTimeoutHandle;
 	
 	// Compatibility stuff
 	function addEventListener(target, type, callback, options) {
@@ -125,6 +127,7 @@
 		optPlaylists = getElement('opt-playlists');
 		
 		// Filter
+		lblFilterStatus = getElement('lbl-filter-status');
 		filterBoxStation = getElement('filter-box-station');
 		filterBoxSong = getElement('filter-box-song');
 		filterBoxArtist = getElement('filter-box-artist');
@@ -326,66 +329,76 @@
 		txtFilterLimit.value = selFilterLimit.value;
 	}
 	
-	function onBtnFilterSubmitClick(e) {
+	function onBtnFilterSubmitClick(e) {		
 		var song_name_search_terms;
 		var artist_name_search_terms;
 		var sort_by;
 		var sort_order;
 		var use_cache;
 		
-		var station_id = parseInt(selFilterStation.value, 10);
-		if (isNaN(station_id)) {
-			station_id = 'any';
-		}
+		clearTimeout(filterStatusTimeoutHandle);
+		setInnerText(lblFilterStatus, 'Processing...');
 		
-		var limit = parseInt(txtFilterLimit.value, 10);
-		if (isNaN(limit)) {
-			limit = 25;
-			updateFilterUI();
-		}
+		// Put in a small delay to let the UI update before locking the thread up
+		setTimeout(function() {
+			var station_id = parseInt(selFilterStation.value, 10);
+			if (isNaN(station_id)) {
+				station_id = 'any';
+			}
 
-		removeCurrentDisplayData();
-		
-		if (optStatistics.checked) {
-			 use_cache = (currentCacheType === CacheType.STATISTICS);
-			showStatistics(station_id, limit, use_cache);
-		}
-		else if (optSongs.checked) {
-			use_cache = (currentCacheType === CacheType.SONGS);
-			song_name_search_terms = splitSearchTerms(txtFilterSong.value.trim());
-			artist_name_search_terms = splitSearchTerms(txtFilterArtist.value.trim());
-			sort_by = selFilterSortBy.value;
-			sort_order = selFilterSortOrder.value;
-			
-			showSongs(station_id, song_name_search_terms, artist_name_search_terms, sort_by, sort_order, limit, use_cache);
-		}
-		else if (optArtists.checked) {
-			use_cache = (currentCacheType === CacheType.ARTISTS);
-			artist_name_search_terms = splitSearchTerms(txtFilterArtist.value.trim());
-			sort_by = selFilterSortBy.value;
-			sort_order = selFilterSortOrder.value;
-			
-			showArtists(station_id, artist_name_search_terms, sort_by, sort_order, limit, use_cache);
-		}
-		else if (optPlaylists.checked) {
-			use_cache = (currentCacheType === CacheType.PLAYLISTS);
-			song_name_search_terms = splitSearchTerms(txtFilterSong.value.trim());
-			artist_name_search_terms = splitSearchTerms(txtFilterArtist.value.trim());
-			sort_by = selFilterSortBy.value;
-			sort_order = selFilterSortOrder.value;
-			
-			var day = parseInt(txtFilterDay.value.substr(0, 2));
-			var month = parseInt(txtFilterMonth.value.substr(0, 2));
-			var year = parseInt(txtFilterYear.value.substr(0, 4), 10);
-			if (!isNaN(day)) {
-				day = (day < 10) ? '0' + day : day.toString();
+			var limit = parseInt(txtFilterLimit.value, 10);
+			if (isNaN(limit)) {
+				limit = 25;
+				updateFilterUI();
 			}
-			if (!isNaN(month)) {
-				month = (month < 10) ? '0' + month : month.toString();
+
+			removeCurrentDisplayData();
+
+			if (optStatistics.checked) {
+				 use_cache = (currentCacheType === CacheType.STATISTICS);
+				showStatistics(station_id, limit, use_cache);
 			}
-			
-			showPlaylists(station_id, song_name_search_terms, artist_name_search_terms, {day: day, month: month, year: year}, sort_by, sort_order, limit, use_cache);
-		}
+			else if (optSongs.checked) {
+				use_cache = (currentCacheType === CacheType.SONGS);
+				song_name_search_terms = splitSearchTerms(txtFilterSong.value.trim());
+				artist_name_search_terms = splitSearchTerms(txtFilterArtist.value.trim());
+				sort_by = selFilterSortBy.value;
+				sort_order = selFilterSortOrder.value;
+
+				showSongs(station_id, song_name_search_terms, artist_name_search_terms, sort_by, sort_order, limit, use_cache);
+			}
+			else if (optArtists.checked) {
+				use_cache = (currentCacheType === CacheType.ARTISTS);
+				artist_name_search_terms = splitSearchTerms(txtFilterArtist.value.trim());
+				sort_by = selFilterSortBy.value;
+				sort_order = selFilterSortOrder.value;
+
+				showArtists(station_id, artist_name_search_terms, sort_by, sort_order, limit, use_cache);
+			}
+			else if (optPlaylists.checked) {
+				use_cache = (currentCacheType === CacheType.PLAYLISTS);
+				song_name_search_terms = splitSearchTerms(txtFilterSong.value.trim());
+				artist_name_search_terms = splitSearchTerms(txtFilterArtist.value.trim());
+				sort_by = selFilterSortBy.value;
+				sort_order = selFilterSortOrder.value;
+
+				var day = parseInt(txtFilterDay.value.substr(0, 2));
+				var month = parseInt(txtFilterMonth.value.substr(0, 2));
+				var year = parseInt(txtFilterYear.value.substr(0, 4), 10);
+				if (!isNaN(day)) {
+					day = (day < 10) ? '0' + day : day.toString();
+				}
+				if (!isNaN(month)) {
+					month = (month < 10) ? '0' + month : month.toString();
+				}
+
+				showPlaylists(station_id, song_name_search_terms, artist_name_search_terms, {day: day, month: month, year: year}, sort_by, sort_order, limit, use_cache);
+			}
+				setInnerText(lblFilterStatus, 'Search complete.');
+				filterStatusTimeoutHandle = setTimeout(function() {
+					setInnerText(lblFilterStatus, '');
+				}, 7000);
+		}, 200);
 	}
 	
 	function onBtnFilterResetClick(e) {

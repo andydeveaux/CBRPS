@@ -68,9 +68,11 @@
 						<label for="opt-playlists">Playlists</label>
 					</div>
 					
-					<form name="dummy-form">
+					<form name="dummy-form" onsubmit="return false">
 						<div id="filter-box">
 							<h4>Filter Results</h4>
+							<p id="lbl-filter-status" class="status"></p>
+							
 							<div id="filter-box-station" class="inline-box">
 								<label for="sel-filter-station">Station:</label>
 								<select id="sel-filter-station">
@@ -132,6 +134,13 @@
 							<div style="margin-top: 15px">
 								<button id="btn-filter-submit" type="submit">Submit</button>
 								<button id="btn-filter-reset">Clear</button>
+								
+								<div class="hint-tooltip">
+									<div class="hint-tooltip-text">
+										Search for exact phrases by surrounding your search terms with quotation marks.
+									</div>
+									<img src="question-mark.png">
+								</div>
 							</div>	
 						</div>
 					</form>

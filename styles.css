@@ -71,6 +71,12 @@ nav.links a
 	text-decoration: none;
 }
 
+.status
+{
+	font-size: 1.2rem;
+	color: #4e4e4e;
+}
+
 .warning
 {
 	margin-top: -10px;
@@ -179,4 +185,38 @@ tr.row-start td, td.border-me
 .center-align 
 {
 	text-align: center;
+}
+
+.hint-tooltip
+{
+	display: inline-block;
+	position: relative;
+	float: right;
+}
+
+.hint-tooltip img
+{
+	cursor: pointer;
+	cursor: hand;
+}
+
+.hint-tooltip-text
+{
+	visibility: hidden;
+	position: absolute;
+	border: 2px outset black;
+	border-radius: 15px;
+	background-color: #1a1a1a;
+	color: white;
+	padding: 10px;
+	font-size: 1.4rem;
+	max-width: 200px;
+	width: 200px;
+	z-index: 2;
+}
+
+.hint-tooltip:hover .hint-tooltip-text
+{
+	visibility: visible;
+	top: -85px;
 }
