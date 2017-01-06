@@ -11,11 +11,16 @@ body
 {
 	font-size: 1.4rem;
 	font-family: 'Open Sans', sans-serif;
-	line-height: 2rem;
+	line-height: 140%;
 	margin: 0;
 	background-color: darkslateblue;
 	height: 100%;
 	box-sizing: border-box;
+}
+
+h1
+{
+	line-height: 100%;
 }
 
 a:hover
@@ -30,7 +35,7 @@ label
 
 .hidden
 {
-	display: none;
+	display: none !important;
 }
 
 #search > input[type="text"], #search > select
@@ -47,10 +52,11 @@ table
 {
 	background-color: white;
 	max-width: 1000px;
+	width: 65%;
 	min-height: 100%;
 	margin-left: auto;
 	margin-right: auto;
-	padding: 20px;
+	padding: 20px 20px 100px 20px;
 	box-sizing: border-box;
 }
 
@@ -66,24 +72,49 @@ nav.links a
 	text-decoration: none;
 }
 
+.status
+{
+	font-size: 1.2rem;
+	color: #4e4e4e;
+}
+
 .warning
 {
 	margin-top: -10px;
 }
 
-nav > button
+.inline-box
 {
-	margin-right: 10px;
+	display: inline-block;
 }
 
-nav > button.selected
+.data-selection > label
 {
-	border-style: inset;
+	margin-right: 20px;
+}
+
+#filter-box
+{
+	border: 1px outset;
+	margin-top: 20px;
+	padding: 15px;
+	display: inline-block;
+}
+
+#filter-box h4
+{
+	margin-top: 0;
+}
+
+#filter-box input[type="text"]
+{
+	margin-right: 5px;
 }
 
 .playlist-container
 {
 	width: 90%;
+	border: 1px solid black;
 	max-height: 520px;
 	overflow-y: auto;
 	margin-bottom: 40px;
@@ -156,4 +187,60 @@ tr.row-start td, td.border-me
 .center-align 
 {
 	text-align: center;
+}
+
+.hint-tooltip
+{
+	display: inline-block;
+	position: relative;
+	float: right;
+}
+
+.hint-tooltip img
+{
+	cursor: pointer;
+	cursor: hand;
+}
+
+.hint-tooltip-text
+{
+	visibility: hidden;
+	position: absolute;
+	border: 2px outset black;
+	border-radius: 15px;
+	background-color: #1a1a1a;
+	color: white;
+	padding: 10px;
+	font-size: 1.4rem;
+	max-width: 200px;
+	width: 200px;
+	z-index: 2;
+}
+
+.hint-tooltip:hover .hint-tooltip-text
+{
+	visibility: visible;
+	top: -85px;
+}
+
+@media screen and (max-width: 768px)
+{
+	.container
+	{
+		width: 90%;
+	}
+}
+
+@media (max-width: 600px)
+{
+	.container
+	{
+		width: 100%;
+		padding: 2px 2px 100px 2px;
+	}
+	
+	.playlist-container
+	{
+		width: 98%;
+	}
 }

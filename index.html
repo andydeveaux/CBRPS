@@ -29,7 +29,7 @@
 						about how many times certain songs were played, especially during the Christmas season. It would've been nicer to get a full month's
 						worth of data, but unfortunately I never thought of the idea until close to the middle of the month. All in all, it was a fun experience
 						and an excuse to teach myself the Python programming language. I've published the source code and the database 
-						<a href="https://github.com/andydeveaux/CBRPS">here</a> for	anyone who wants to take a peek at it or modify it for their own use. 
+						<a href="https://github.com/andydeveaux/CBRPS" target="_blank">here</a> for	anyone who wants to take a peek at it or modify it for their own use. 
 						However, I warn you that the source code isn't all that pretty since I was learning as I went along and was mostly doing it as a personal 
 						project. Anyway, I've built this page for you to see some of the statistics I thought were interesting and for you to be able to perform 
 						your own searches on the data. Enjoy!
@@ -43,58 +43,109 @@
 				<br>
 				<nav class="links">
 					<a href="https://github.com/andydeveaux/CBRPS" target="_blank">Source Code</a>
-					<a href="https://github.com/andydeveaux/CBRPS/blob/master/CBRadioPlaylists.db?raw=true">Database File</a>
+					<a href="https://github.com/andydeveaux/CBRPS/blob/master/CBRadioPlaylists.db?raw=true">SQLite3 Database File</a>
 				</nav>
 				<br>
 				<div id="data-download-box">
+					<p id="lbl-fetch-status" class="status"></p>
 					<button id="btn-fetch-data">Fetch Data</button>
 				</div>
-			
+				
 				<div id="data-box" class="hidden">
 					<h2>Choose What Data To Show</h2>
-					<p class="warning">WARNING: Some may cause your browser to crash or lag due to the sheer size of the dataset.</p>
-					<label for="txt-limit-query">Statistics Limit: </label>
-					<input id="txt-limit-stats" type="text" size="4" value="20" style="margin-bottom: 5px" title="Limit how many rows of each statistic to display">
-					<nav>
-						<button id="btn-show-statistics">Show Statistics</button>
-						<button id="btn-show-all-artists">Show Artists</button>
-						<button id="btn-show-all-songs">Show Songs</button>
-						<button id="btn-show-playlists">Show Playlists</button>
-					</nav>
+					<p class="warning">WARNING: Some options may cause your browser to lag or crash due to the sheer size of the dataset.</p>
+					<div class="data-selection">
+						<input id="opt-statistics" type="radio" name="data-select" value="1" checked="checked">
+						<label for="opt-statistics">Statistics</label>
+						
+						<input id="opt-songs" type="radio" name="data-select">
+						<label for="opt-songs">Songs</label>
 
-					<div id="search" class="hidden">
-						<h4>Search</h4>
-						<label for="search-station">Station:</label>
-						<select id="search-station">
-							<option value="-1">Any</option>
-						</select>
-						<label for="txt-search-song">Song:</label>
-						<input id="txt-search-song" type="text" size="20">
+						<input id="opt-artists" type="radio" name="data-select">
+						<label for="opt-artists">Artists</label>
 
-						<label for="txt-search-artist">Artist:</label>
-						<input id="txt-search-artist" type="text" size="20">
-
-						<label for="search-sort-by">Sort By:</label>
-						<select id="search-sort-by">
-							<option value="playtime">Playtime</option>
-							<option value="artist">Song</option>
-							<option value="song">Artist</option>
-						</select>
-
-						<select id="search-sort-order">
-							<option value="asc">Ascended</option>
-							<option value="desc" selected="selected">Descended</option>
-						</select>
-						<br>
-						<button id="btn-search">Search</button>
+						<input id="opt-playlists" type="radio" name="data-select">
+						<label for="opt-playlists">Playlists</label>
 					</div>
+					
+					<form name="dummy-form" onsubmit="return false">
+						<div id="filter-box">
+							<h4>Filter Results</h4>
+							<p id="lbl-filter-status" class="status"></p>
+							
+							<div id="filter-box-station" class="inline-box">
+								<label for="sel-filter-station">Station:</label>
+								<select id="sel-filter-station">
+									<option value="any" selected="selected">Any</option>
+								</select>
+							</div>
+							
+							<div style="margin-top: 10px">
+								<div id="filter-box-song" class="inline-box">
+									<label for="txt-filter-song">Song:</label>
+									<input id="txt-filter-song" type="text" size="20">
+								</div>
+								
+								<div id="filter-box-artist" class="inline-box">
+									<label for="txt-filter-artist">Artist:</label>
+									<input id="txt-filter-artist" type="text" size="20">
+								</div>
+							</div>
+							
+							<div style="margin-top: 10px">
+								<div id="filter-box-sort-by" class="inline-box">
+									<label for="sel-filter-sort-by">Sort By:</label>
+									<select id="sel-filter-sort-by">
+									</select>
+								</div>
+								
+								<div id="filter-box-sort-order" class="inline-box">
+									<select id="sel-filter-sort-order">
+										<option value="asc">Ascending</option>
+										<option value="desc" selected="selected">Descending</option>
+									</select>
+								</div>
+							</div>
+							
+							<div id="filter-box-date" style="margin-top: 10px">
+								<label for="txt-filter-day">Day:</label>
+								<input id="txt-filter-day" type="text" size="2" maxlength="2">
+
+								<label for="txt-filter-month">Month:</label>
+								<input id="txt-filter-month" type="text" size="2" maxlength="2">
+
+								<label for="txt-filter-year">Year:</label>
+								<input id="txt-filter-year" type="text" size="4" maxlength="4">
+							</div>
+							
+							<div id="filter-box-limit" style="margin-top: 10px">
+								<label for="txt-filter-limit">Limit:</label>
+								<input id="txt-filter-limit" type="text" size="4" title="Limit the number of results to display">
+								<select id="sel-filter-limit">
+									<option value="0">None</option>
+									<option value="25" selected="selected">25</option>
+									<option value="50">50</option>
+									<option value="75">75</option>
+									<option value="100">100</option>
+									<option value="200">200</option>
+								</select>
+							</div>
+							
+							<div style="margin-top: 15px">
+								<button id="btn-filter-submit" type="submit">Submit</button>
+								<button id="btn-filter-reset">Clear</button>
+								
+								<div class="hint-tooltip">
+									<div class="hint-tooltip-text">
+										Search for exact phrases by surrounding your search terms with quotation marks.
+									</div>
+									<img src="question-mark.png">
+								</div>
+							</div>	
+						</div>
+					</form>
 
 					<div id="song-data">
-						<div id="playlist-filter" class="hidden">
-							<label for="playlist-station">Station:</label>
-							<select id="playlist-station">
-							</select>
-						</div>
 					</div>
 				</div>
 			</main>
