@@ -164,7 +164,10 @@
 		downloadRadioDataAttempts += 1;
 		var http_req = new XMLHttpRequest();
 		http_req.open('GET', RADIO_DATA_FILE, true);
-		http_req.overrideMimeType('application/json');
+		// If this method doesn't exist, guess you'll have to rely on the server response
+		if (typeof http_req.overrideMimeType === 'function') {
+			http_req.overrideMimeType('application/json');
+		}
 		http_req.onreadystatechange = function() {
 			onRadioDataDownloaded(http_req);
 		};
