@@ -29,12 +29,16 @@
 	var filterBoxStation;
 	var filterBoxSong;
 	var filterBoxArtist;
+	var filterBoxDate;
 	var filterBoxSortBy;
 	var filterBoxSortOrder;
 	var filterBoxLimit;
 	var selFilterStation;
 	var txtFilterSong;
 	var txtFilterArtist;
+	var txtFilterDay;
+	var txtFilterMonth;
+	var txtFilterYear;
 	var selFilterSortBy;
 	var selFilterSortOrder;
 	var txtFilterLimit;
@@ -127,9 +131,13 @@
 		filterBoxSortBy = getElement('filter-box-sort-by');
 		filterBoxSortOrder = getElement('filter-box-sort-order');
 		filterBoxLimit = getElement('filter-box-limit');
+		filterBoxDate = getElement('filter-box-date');
 		selFilterStation = getElement('sel-filter-station');
 		txtFilterSong = getElement('txt-filter-song');
 		txtFilterArtist = getElement('txt-filter-artist');
+		txtFilterDay = getElement('txt-filter-day');
+		txtFilterMonth = getElement('txt-filter-month');
+		txtFilterYear = getElement('txt-filter-year');
 		selFilterSortBy = getElement('sel-filter-sort-by');
 		selFilterSortOrder = getElement('sel-filter-sort-order');
 		txtFilterLimit = getElement('txt-filter-limit');
@@ -194,11 +202,12 @@
 	function updateFilterUI() {
 		if (optStatistics.checked) {
 			selectOption(optStatistics, 'data_choice', onOptStatisticsClick);
-			hideElements([filterBoxSong, filterBoxArtist, filterBoxSortBy, filterBoxSortOrder]);
+			hideElements([filterBoxSong, filterBoxArtist, filterBoxSortBy, filterBoxSortOrder, filterBoxDate]);
 			unhideElements([filterBoxStation, filterBoxLimit]);
 		}
 		else if (optSongs.checked) {
 			selectOption(optSongs, 'data_choice', onOptSongsClick);
+			hideElements([filterBoxDate]);
 			unhideElements([filterBoxStation, filterBoxSong, filterBoxArtist, filterBoxSortBy, filterBoxSortOrder, filterBoxLimit]);
 			
 			clearChildren(selFilterSortBy);
@@ -208,7 +217,7 @@
 		}
 		else if (optArtists.checked) {
 			selectOption(optArtists, 'data_choice', onOptArtistsClick);
-			hideElements([filterBoxSong]);
+			hideElements([filterBoxSong, filterBoxDate]);
 			unhideElements([filterBoxStation, filterBoxArtist, filterBoxSortBy, filterBoxSortOrder, filterBoxLimit]);
 			
 			clearChildren(selFilterSortBy);
@@ -217,12 +226,12 @@
 		}
 		else if (optPlaylists.checked) {
 			selectOption(optPlaylists, 'data_choice', onOptPlaylistsClick);
-			unhideElements([filterBoxStation, filterBoxSong, filterBoxArtist, filterBoxSortBy, filterBoxSortOrder, filterBoxLimit]);
+			unhideElements([filterBoxStation, filterBoxSong, filterBoxArtist, filterBoxSortBy, filterBoxSortOrder, filterBoxLimit, filterBoxDate]);
 			
 			clearChildren(selFilterSortBy);
+			selFilterSortBy.appendChild(generateElementWithText('option', 'Date', {value: 'date'}));
 			selFilterSortBy.appendChild(generateElementWithText('option', 'Song', {value: 'song'}));
 			selFilterSortBy.appendChild(generateElementWithText('option', 'Artist', {value: 'artist'}));
-			selFilterSortBy.appendChild(generateElementWithText('option', 'Date', {value: 'date'}));
 		}
 		
 		txtFilterLimit.value = selFilterLimit.value;
@@ -365,7 +374,17 @@
 			sort_by = selFilterSortBy.value;
 			sort_order = selFilterSortOrder.value;
 			
-			showPlaylists(station_id, song_name_search_terms, artist_name_search_terms, sort_by, sort_order, limit, use_cache);
+			var day = parseInt(txtFilterDay.value.substr(0, 2));
+			var month = parseInt(txtFilterMonth.value.substr(0, 2));
+			var year = parseInt(txtFilterYear.value.substr(0, 4), 10);
+			if (!isNaN(day)) {
+				day = (day < 10) ? '0' + day : day.toString();
+			}
+			if (!isNaN(month)) {
+				month = (month < 10) ? '0' + month : month.toString();
+			}
+			
+			showPlaylists(station_id, song_name_search_terms, artist_name_search_terms, {day: day, month: month, year: year}, sort_by, sort_order, limit, use_cache);
 		}
 	}
 	
@@ -373,6 +392,9 @@
 		selFilterStation.value = 'any';
 		txtFilterSong.value = '';
 		txtFilterArtist.value = '';
+		txtFilterDay.value = '';
+		txtFilterMonth.value = '';
+		txtFilterYear.value = '';
 		selFilterSortBy.selectedIndex = 0;
 		selFilterSortOrder.value = 'desc';
 		txtFilterLimit.value = '25';
@@ -428,7 +450,6 @@
 			// Only loop through one station for the filter
 			stations = {};
 			stations[station_id] = radioQuery.getStation(station_id);
-			console.log(stations);
 		}
 		var station_loop_data;
 		for (station_id in stations) {
@@ -502,7 +523,6 @@
 		var table = generateTable(['Artist Name', 'Station', 'Play Count'], []);		// Generate an empty table because we need to do row spanning with certain rows
 		var table_ref = table.getElementsByTagName('table')[0];
 		table_ref.className = 'spanned-list';
-		console.log(artists);
 		for (i=0; i<artists.length; i++) {
 			record = artists[i];
 			
@@ -669,7 +689,7 @@
 		songDataBox.appendChild(generateLink('#data-box', 'Go to Top', false));
 	}
 	
-	function showPlaylists(param_station_id, song_search_terms, artist_search_terms, sort_by, sort_order, limit, use_cache) {
+	function showPlaylists(param_station_id, song_search_terms, artist_search_terms, date, sort_by, sort_order, limit, use_cache) {
 		var playlists;
 		if (use_cache) {
 			playlists = cachedData;
@@ -691,18 +711,17 @@
 				// -- Filter stuff --				
 				// Only show if the list if it isn't filtered
 				if (param_station_id !== 'any' && param_station_id.toString() !== station_id) {
-					console.log(param_station_id, station_id);
 					continue;
 				}
 				
 				// Filter by search terms
 				data = [];
-				if (song_search_terms.length === 0 && artist_search_terms.length === 0) {
+				if (song_search_terms.length === 0 && artist_search_terms.length === 0 && isNaN(date.day) && isNaN(date.month) && isNaN(date.year)) {
 					data = playlist;
 				}
 				else {
 					for (i=0; i<playlist.length; i++) {
-						if (!isInSearch(playlist[i][0], song_search_terms) || !isInSearch(playlist[i][1], artist_search_terms)) {
+						if (!isInSearch(playlist[i][0], song_search_terms) || !isInSearch(playlist[i][1], artist_search_terms) || !matchesDate(playlist[i][3], date)) {
 							continue;
 						}
 						data.push(playlist[i]);
@@ -727,10 +746,10 @@
 				}
 				else if (sort_by === 'date') {
 					if (sort_order === 'asc') {
-						data.sort(playDateSortAsc);
+						data.sort(playlistDateSortAsc);
 					}
 					else {
-						data.sort(playDateSortDesc);
+						data.sort(playlistDateSortDesc);
 					}
 				}
 				
@@ -1043,6 +1062,46 @@
 		currentCacheType = type;
 	}
 	
+	// Parse the formatted date string and create a Javascript Date object out of it. Don't need to worry about timezones since we're dealing with each station separately
+	function getUnixEpoch(date_str) {
+		var parsed = date_str.trim().split('/');
+		var day = parseInt(parsed[0], 10);
+		var month = parseInt(parsed[1], 10) - 1;			// Month is zero-based for some stupid reason
+		parsed = parsed[2].split(' ');
+		var year = parseInt(parsed[0], 10);
+		var meridiem = parsed[2];
+		
+		parsed = parsed[1].split(':');
+		var hours = parseInt(parsed[0], 10);
+		var minutes = parseInt(parsed[1], 10);
+		var seconds = parseInt(parsed[2], 10);
+		
+		// Convert 12-hour to 24-hour
+		if (hours === 12) {
+			if (meridiem === 'AM') {
+				hours = 0;
+			}
+		}
+		else if (meridiem === 'PM') {
+			hours += 12;
+		}
+		
+		return (Date.UTC(year, month, day, hours, minutes, seconds) / 1000);
+	}
+	
+	function matchesDate(date_str, date) {
+		if (isNaN(date.day)) {
+			date.day = '[0-9]{1,2}';
+		}
+		if (isNaN(date.month)) {
+			date.month = '[0-9]{1,2}';
+		}
+		if (isNaN(date.year)) {
+			date.year = '[0-9]{4}';
+		}
+		return date_str.search(new RegExp('^' + date.day + '/' + date.month + '/' + date.year + '')) === 0 ? true : false;
+	}
+	
 	// -- Sort Functions --
 	function artistPlayCountSortAsc(a, b) {
 		var count1 = a[1].total;
@@ -1167,6 +1226,32 @@
 			return 1;
 		}
 		
+		return 0;
+	}
+	
+	function playlistDateSortAsc(a, b) {
+		var time1 = getUnixEpoch(a[3]);
+		var time2 = getUnixEpoch(b[3]);
+		
+		if (time1 < time2) {
+			return -1;
+		}
+		else if (time1 > time2) {
+			return 1;
+		}
+		return 0;
+	}
+	
+	function playlistDateSortDesc(a, b) {
+		var time1 = getUnixEpoch(a[3]);
+		var time2 = getUnixEpoch(b[3]);
+		
+		if (time1 > time2) {
+			return -1;
+		}
+		else if (time1 < time2) {
+			return 1;
+		}
 		return 0;
 	}
 	

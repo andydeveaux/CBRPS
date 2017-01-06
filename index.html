@@ -50,7 +50,7 @@
 					<p id="lbl-fetch-status"></p>
 					<button id="btn-fetch-data">Fetch Data</button>
 				</div>
-			
+				
 				<div id="data-box" class="hidden">
 					<h2>Choose What Data To Show</h2>
 					<p class="warning">WARNING: Some options may cause your browser to lag or crash due to the sheer size of the dataset.</p>
@@ -67,7 +67,7 @@
 						<input id="opt-playlists" type="radio" name="data-select">
 						<label for="opt-playlists">Playlists</label>
 					</div>
-
+					
 					<div id="filter-box">
 						<h4>Filter Results</h4>
 						<div id="filter-box-station" class="inline-box">
@@ -88,7 +88,7 @@
 								<input id="txt-filter-artist" type="text" size="20">
 							</div>
 						</div>
-
+						
 						<div style="margin-top: 10px">
 							<div id="filter-box-sort-by" class="inline-box">
 								<label for="sel-filter-sort-by">Sort By:</label>
@@ -102,21 +102,30 @@
 									<option value="desc" selected="selected">Descending</option>
 								</select>
 							</div>
+						</div>
+						
+						<div id="filter-box-date" style="margin-top: 10px">
+							<label for="txt-filter-day">Day:</label>
+							<input id="txt-filter-day" type="text" size="2" maxlength="2">
 							
-							<div style="margin-top: 10px">
-								<div id="filter-box-limit" class="inline-box">
-									<label for="txt-filter-limit">Limit:</label>
-									<input id="txt-filter-limit" type="text" size="4" title="Limit the number of results to display">
-									<select id="sel-filter-limit">
-										<option value="0">None</option>
-										<option value="25" selected="selected">25</option>
-										<option value="50">50</option>
-										<option value="75">75</option>
-										<option value="100">100</option>
-										<option value="200">200</option>
-									</select>
-								</div>
-							</div>
+							<label for="txt-filter-month">Month:</label>
+							<input id="txt-filter-month" type="text" size="2" maxlength="2">
+							
+							<label for="txt-filter-year">Year:</label>
+							<input id="txt-filter-year" type="text" size="4" maxlength="4">
+						</div>
+							
+						<div id="filter-box-limit" style="margin-top: 10px">
+							<label for="txt-filter-limit">Limit:</label>
+							<input id="txt-filter-limit" type="text" size="4" title="Limit the number of results to display">
+							<select id="sel-filter-limit">
+								<option value="0">None</option>
+								<option value="25" selected="selected">25</option>
+								<option value="50">50</option>
+								<option value="75">75</option>
+								<option value="100">100</option>
+								<option value="200">200</option>
+							</select>
 						</div>
 						
 						<div style="margin-top: 15px">

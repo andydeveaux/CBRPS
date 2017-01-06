@@ -18,7 +18,8 @@ body
 	box-sizing: border-box;
 }
 
-h1 {
+h1
+{
 	line-height: 100%;
 }
 
@@ -75,23 +76,32 @@ nav.links a
 	margin-top: -10px;
 }
 
-.inline-box {
+.inline-box
+{
 	display: inline-block;
 }
 
-.data-selection > label {
+.data-selection > label
+{
 	margin-right: 20px;
 }
 
-#filter-box {
+#filter-box
+{
 	border: 1px outset;
 	margin-top: 20px;
 	padding: 15px;
 	display: inline-block;
 }
 
-#filter-box h4 {
+#filter-box h4
+{
 	margin-top: 0;
+}
+
+#filter-box input[type="text"]
+{
+	margin-right: 5px;
 }
 
 .playlist-container
